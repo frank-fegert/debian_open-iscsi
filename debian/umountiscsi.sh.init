@@ -1,0 +1,51 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          stop-open-iscsi.sh
+# Required-Start:
+# Required-Stop:     $network $remote_fs sendsigs open-iscsi
+# Default-Start:
+# Default-Stop:      0 6
+# Short-Description: Unmounts iSCSI filesystems and stops iSCSI services
+### END INIT INFO
+
+. /lib/init/vars.sh
+
+. /lib/lsb/init-functions
+
+do_stop () {
+    log_daemon_msg "Unmounting iscsi-backed filesystems"
+
+    for HOST_DIR in /sys/devices/platform/host*; do
+	if ! [ -d $HOST_DIR/iscsi_host* ]; then
+	    continue
+	fi
+	for TARGET_DIR in $HOST_DIR/session*/target*/*\:*; do
+	    for BLOCK_FILE in $TARGET_DIR/block\:*; do
+		BLOCK_DEV=`echo "$BLOCK_FILE" | sed 's/.*block\://'`
+		DOS_PARTITIONS="`awk "/^\/dev\/$BLOCK_DEV/ { print \\$2; }" < /proc/mounts`"
+		for DEVICE in $DOS_PARTITIONS; do
+		    log_progress_msg $DEVICE
+		    umount $DEVICE
+		done
+	    done
+	done
+    done
+    log_end_msg 0
+}
+
+case "$1" in
+    start)
+	# No-op
+        ;;
+    restart|reload|force-reload)
+	echo "Error: argument '$1' not supported" >&2
+	exit 3
+	;;
+    stop|"")
+        do_stop
+	;;
+    *)
+        echo "Usage: stop-open-iscsi.sh [start|stop]" >&2
+	exit 3
+	;;
+esac

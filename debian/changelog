@@ -1,6 +1,154 @@
-linux-iscsi (5.0.0.0.3rc6-363) unstable; urgency=low
+open-iscsi (2.0.870~rc3-0.5) unstable; urgency=low
 
-  * Initial Release.
+  * Non-maintainer upload to fix release goal.
+  * Fix incorrect provides and dependencies in init.d script (Closes:
+    #541390).
+  * Add missing package dependency on udev.  Rewrite init.d script to use
+    'udevadm settle' instead of obsolete 'udevsettle' (Closes: #517225).
+  * No longer ignore errors in the postinst.  Tip from lintian.
+  * Do not start open-iscsi init.d script during package installation,
+    to avoid installation problem (Closes: #529280).
 
- -- Chad Tindel <chad.tindel@hp.com>  Mon, 30 May 2005 15:17:53 -0600
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 13 Sep 2009 20:25:49 +0200
+
+open-iscsi (2.0.870~rc3-0.4) unstable; urgency=medium
+
+  * Clean up diff.gz, it downgraded the package to 2.0.869.2.
+    (closes: #507496)
+
+ -- Norbert Tretkowski <nobse@debian.org>  Thu,  8 Jan 2009 11:19:23 +0100
+
+open-iscsi (2.0.870~rc3-0.3) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Do not exit with return code 1 in init script, because it breaks
+    upgrades and is a policy violation (Closes: #503070)
+
+ -- Patrick Schoenfeld <schoenfeld@debian.org>  Mon, 27 Oct 2008 10:21:17 +0100
+
+open-iscsi (2.0.870~rc3-0.2) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Drop patch from iscsistart.c which breaks booting from iscsi.
+    (closes: #499508)
+  * Drop patch from version.h which adds an outdated upstream version
+    number.
+
+ -- Norbert Tretkowski <nobse@debian.org>  Fri, 10 Oct 2008 10:46:56 +0200
+
+open-iscsi (2.0.870~rc3-0.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * New upstream release
+    - Adds support for Linux 2.6.26 (Closes: #499508)
+  * Fix ">&" redirection bashism in open-iscsi initscript.
+
+ -- Chris Lamb <lamby@debian.org>  Tue, 30 Sep 2008 21:40:27 +0100
+
+open-iscsi (2.0.869.2-2.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Fix bashism in debian/rules (Closes: #484427)
+    - Move upstream URL to Homepage field.
+    - Bump Standards-Version to 3.8.0.
+
+ -- Chris Lamb <chris@chris-lamb.co.uk>  Fri, 11 Jul 2008 23:20:18 +0100
+
+open-iscsi (2.0.869.2-2) unstable; urgency=low
+
+  * Revert if-up.d approach for logging into automatic targets; just
+    start open-iscsi at rcS.d/S45, and mount _netdev filesystems when
+    open-iscsi is started.
+  * Call udevsettle before mounting
+
+ -- Philipp Hug <debian@hug.cx>  Mon, 12 May 2008 12:48:49 +0200
+
+open-iscsi (2.0.869.2-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Philipp Hug <debian@hug.cx>  Mon, 12 May 2008 11:56:30 +0200
+
+open-iscsi (2.0.869~rc4-1) experimental; urgency=low
+
+  * init script: If /sys is not mounted return without error
+    (Closes: #470434, #423368)
+  * Merged changes by Andrew Moise <chops@demiurgestudios.com>
+  * Adding Andrew as Co-Maintainer
+  * New upstream release (Closes: #474167)
+  * Added flex and bison build-depends
+  * Fixed up init scripts to attempt to handle automatic mounting and
+    unmounting properly (Closes: #423851, #438542)
+  * Added /etc/network/if-up.d/000open-iscsi to start automatic targets
+  * Parameterized /etc/iscsi/initiatorname.iscsi in init script,
+    correcting one place where it still said /etc/initiatorname.iscsi
+  * Updated README.Debian
+  * Include iscsistart for use in initramfs (Closes: #419408)
+  * Add initramfs scripts to make iSCSI root easy
+  * Based on patch by Guido Guenther <agx@sigxcpu.org>
+
+ -- Philipp Hug <debian@hug.cx>  Sat, 12 Apr 2008 15:53:12 +0200
+
+open-iscsi (2.0.865-1) unstable; urgency=low
+
+  * New upstream release
+  * Removed iscsi-iname patch as it's now included in upstream
+  * Moved initiatorname.iscsi to /etc/iscsi/initiatorname.iscsi
+
+ -- Philipp Hug <debian@hug.cx>  Sat, 16 Jun 2007 12:31:05 +0200
+
+open-iscsi (2.0.730-1) unstable; urgency=low
+
+  * Reverted to upstream init script + patches (Closes: #397363 #401579)
+  * Removed libdb dependency
+  * Create /etc/iscsi
+  * Integrated NMU changes from Martin Zobel-Helas
+     + New Upstream Release (Closes: #397636)
+     + Made /var/lib/open-iscsi 0700 (Closes: #398733)
+     + change #define INITIATOR_NAME_FILE to /etc/initiatorname.iscsi
+       in usr/initiator.h
+     + Fix package description (Closes: #380162)
+
+ -- Philipp Hug <debian@hug.cx>  Wed,  6 Dec 2006 20:22:30 +0100
+
+open-iscsi (1.0.485-4) unstable; urgency=low
+
+  * Removed bash-ism from init script
+  * Added hint about autostart to README.Debian
+  * Improved description a bit (Closes: #380162)
+
+ -- Philipp Hug <debian@hug.cx>  Mon, 21 Aug 2006 19:55:40 +0200
+
+open-iscsi (1.0.485-3) unstable; urgency=low
+
+  * Added description to man page
+
+ -- Philipp Hug <debian@hug.cx>  Sun, 23 Jul 2006 19:08:48 +0200
+
+open-iscsi (1.0.485-2) unstable; urgency=low
+
+  * Moved package to unstable
+  * Removed unused section in control
+  * Updated Standards-Version to 3.7.2.1
+  * Added INIT INFO section to init script to make it lsb compliant
+  * Removed unusued lines in rules
+  * Added man page for iscsi-iname
+
+ -- Philipp Hug <debian@hug.cx>  Sat, 22 Jul 2006 19:45:35 +0200
+
+open-iscsi (1.0.485-1) experimental; urgency=low
+
+  * Install iscsid.conf in /etc/iscsid.conf instead of /etc/iscsid.conf-example
+
+ -- Philipp Hug <debian@hug.cx>  Tue, 27 Jun 2006 14:42:20 +0200
+
+open-iscsi (1.0.485-0unreleased) dapper; urgency=low
+
+  * Initial Release (closes: Bug#333695)
+  * Updated init script
+  * Automatically generate iscsi initiator name
+  * Use Debian specific initator name prefix
+  * Put database into /var/lib/open-iscsi
+
+ -- Philipp Hug <debian@hug.cx>  Mon,  6 Mar 2006 19:20:17 +0000
 
