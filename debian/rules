@@ -78,35 +78,6 @@ install: install-arch
 # disabled kernel module package for now because source is already in debian stock kernelsy
 install-indep:
 
-disabled-install-indep:
-	dh_testdir
-	dh_testroot
-	dh_clean -k -i 
-	dh_installdirs -i
-
-        # create needed directories
-	dh_installdirs -i usr/src/modules/linux-iscsi
-
-	mkdir -p modules/linux-iscsi/debian
-
-        # copy the driver source
-	tar --exclude=debian -c * | (cd modules/linux-iscsi && tar xv)
-
-        # copy all relevant debian/ files
-	cp debian/compat debian/copyright modules/linux-iscsi/debian
-	cat debian/changelog | sed -e 's/linux-iscsi/linux-iscsi-modules/' > modules/linux-iscsi/debian/changelog
-	cp debian/*.modules.in modules/linux-iscsi/debian
-	install -m755 debian/rules.modules modules/linux-iscsi/debian/rules
-
-        # entar the source
-	tar jcf debian/linux-iscsi-modules-source/usr/src/linux-iscsi-modules-source.tar.bz2 modules
-
-        # Add here commands to install the indep part of the package into
-        # debian/<package>-doc.
-        #INSTALLDOC#
-
-	dh_install -i
-
 install-arch:
 	dh_testdir
 	dh_testroot
