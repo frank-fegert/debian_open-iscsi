@@ -1,0 +1,3 @@
+version=3
+http://www.open-iscsi.org/bits/open-iscsi-(.*)-(.*)\.tar\.gz
+#http://www.open-iscsi.org/bits/open-iscsi-2.0-871.tar.gz
