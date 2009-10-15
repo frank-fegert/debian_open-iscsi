@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Philipp Hug <debian@hug.cx>
 Uploaders: Andrew Moise <chops@demiurgestudios.com>
-Build-Depends: debhelper (>= 4.0.0), bzip2, bison, flex
+Build-Depends: debhelper (>= 7.0.0), bzip2, bison, flex
 Standards-Version: 3.8.0
 Homepage: http://www.open-iscsi.org/
 
