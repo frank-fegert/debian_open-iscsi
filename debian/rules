@@ -81,7 +81,7 @@ install-indep:
 install-arch:
 	dh_testdir
 	dh_testroot
-	dh_clean -k -s 
+	dh_prep
 	dh_installdirs -s
 
 	# Add here commands to install the arch part of the package into 
