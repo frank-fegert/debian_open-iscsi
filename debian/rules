@@ -16,6 +16,12 @@
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 
+# get-orig-source target
+DEB_UPSTREAM_VERSION=$(shell dpkg-parsechangelog | sed -rne 's,^Version: ([^-]+).*,\1,p')
+
+get-orig-source:
+	[ ! -f $(ORIG_FILE).gz ] || rm -f $(ORIG_FILE).gz
+	uscan --force-download --rename --repack --download-version=$(DEB_UPSTREAM_VERSION) --destdir=.
 
 
 CFLAGS = -Wall -g
@@ -156,4 +162,4 @@ binary-arch: build-arch install-arch
 	$(MAKE) -f debian/rules DH_OPTIONS=-a binary-common
 
 binary: binary-arch binary-indep
-.PHONY: build clean binary-indep binary-arch binary install install-indep install-arch configure
+.PHONY: build clean binary-indep binary-arch binary install install-indep install-arch configure get-orig-source
