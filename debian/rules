@@ -49,7 +49,7 @@ build-arch-stamp: configure-stamp
 
 	# Add here commands to compile the arch part of the package.
 	$(MAKE) -C utils/fwparam_ibft
-	$(MAKE) -C usr
+	$(MAKE) user
 	$(MAKE) -C utils
 
 	touch build-arch-stamp
