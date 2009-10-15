@@ -5,10 +5,12 @@ Based on linux-iscsi debianization from Chad Tindel <chad.tindel@hp.com>
 
 It was downloaded from http://www.open-iscsi.org/
 
-Copyright Holder: Dmitry Yusupov <dima@neterion.com> and others.
+Upstream Authors: Open-iSCSI Developers <http://www.open-iscsi.org>
+Copyright: (C) Dmitry Yusupov <dima@neterion.com> and others.
 
 License:
 
 You are free to distribute this software under the terms of the GNU General 
-Public License.  On Debian systems, the complete text of the GNU General Public
-License can be found in the file `/usr/share/common-licenses/GPL'.
+Public License v2 (or at your option) any later version.  On Debian systems,
+the complete text of the GNU General Public License can be found in the file
+`/usr/share/common-licenses/GPL-2'.
