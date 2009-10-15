@@ -11,8 +11,20 @@ Package: open-iscsi
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, udev
 Description: High performance, transport independent iSCSI implementation
- iSCSI is a network protocol standard that allows the use of the SCSI protocol
- over TCP/IP networks.  This implementation follows RFC3720.
+ Open-iSCSI is a high-performance, transport independent, multi-platform
+ implementation of RFC3720 iSCSI
+ .
+ Open-iSCSI is partitioned into user and kernel parts where the kernel
+ portion implements iSCSI data path (i.e. iSCSI Read and iSCSI Write)
+ The userspace contains the entire control plane consisting of:
+  * Configuration Manager
+  * iSCSI Discovery, Login and Logout processing
+  * Connection level error processing
+  * Nop-In and Nop-Out handling
+  * Text processing, iSNS, SLP, Radius et cetera (future)
+ .
+ The userspace component consists of a daemon, iscsid and a management
+ utility, iscsiadm
 
 #Package: linux-iscsi-modules-source
 #Architecture: all
