@@ -1,3 +1,11 @@
+open-iscsi (2.0.870~rc3-0.6) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * [4bfddee] Fix CVE-2009-1297 (Closes: #547011) - thanks to Colin Watson for
+    the patch
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 23 Jan 2010 17:56:18 +0100
+
 open-iscsi (2.0.870~rc3-0.5) unstable; urgency=low
 
   * Non-maintainer upload to fix release goal.
