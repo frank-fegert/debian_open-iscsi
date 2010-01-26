@@ -1,6 +1,6 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:          stop-open-iscsi.sh
+# Provides:          umountiscsi.sh
 # Required-Start:
 # Required-Stop:     $network $remote_fs sendsigs open-iscsi
 # Default-Start:
