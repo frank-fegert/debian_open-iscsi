@@ -158,7 +158,7 @@ typedef enum discovery_type {
 	DISCOVERY_TYPE_SLP,
 	DISCOVERY_TYPE_ISNS,
 	DISCOVERY_TYPE_STATIC,
-	DISCOVERY_TYPE_FWBOOT,
+	DISCOVERY_TYPE_FW,
 } discovery_type_e;
 
 typedef struct conn_rec {
@@ -173,6 +173,7 @@ typedef struct conn_rec {
 typedef struct session_rec {
 	int					initial_cmdsn;
 	int					reopen_max;
+	int					xmit_thread_priority;
 	int					cmds_max;
 	int					queue_depth;
 	int					initial_login_retry_max;
