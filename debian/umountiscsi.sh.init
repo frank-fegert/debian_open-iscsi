@@ -4,7 +4,7 @@
 # Required-Start:
 # Required-Stop:     $network $remote_fs sendsigs open-iscsi
 # Default-Start:
-# Default-Stop:      0 6
+# Default-Stop:      0 1 6
 # Short-Description: Unmounts iSCSI filesystems and stops iSCSI services
 ### END INIT INFO
 

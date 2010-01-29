@@ -140,8 +140,8 @@ binary-common:
 	dh_installchangelogs 
 	dh_installdocs
 	dh_installexamples
-	dh_installinit -u 'start 45 S . stop 81 0 6 .' --no-start
-	dh_installinit -u 'stop 80 0 6 .' --no-start --name=umountiscsi.sh
+	dh_installinit -u 'start 45 S . stop 81 0 1 6 .' --no-start
+	dh_installinit -u 'stop 80 0 1 6 .' --no-start --name=umountiscsi.sh
 	dh_installman
 	dh_link
 	dh_strip
