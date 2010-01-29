@@ -32,6 +32,7 @@
 
 #include "iscsid.h"
 #include "mgmt_ipc.h"
+#include "event_poll.h"
 #include "iscsi_ipc.h"
 #include "log.h"
 #include "util.h"
@@ -41,6 +42,8 @@
 #include "version.h"
 #include "iscsi_sysfs.h"
 #include "iface.h"
+#include "session_info.h"
+#include "sysdeps.h"
 
 /* global config info */
 struct iscsi_daemon_config daemon_config;
@@ -49,8 +52,6 @@ struct iscsi_daemon_config *dconfig = &daemon_config;
 static char program_name[] = "iscsid";
 int control_fd, mgmt_ipc_fd;
 static pid_t log_pid;
-
-extern char sysfs_file[];
 
 static struct option const long_options[] = {
 	{"config", required_argument, NULL, 'c'},
@@ -96,9 +97,9 @@ setup_rec_from_negotiated_values(node_rec_t *rec, struct session_info *info)
 	struct iscsi_auth_config auth_conf;
 
 	idbm_node_setup_from_conf(rec);
-	strncpy(rec->name, info->targetname, TARGET_NAME_MAXLEN);
+	strlcpy(rec->name, info->targetname, TARGET_NAME_MAXLEN);
 	rec->conn[0].port = info->persistent_port;
-	strncpy(rec->conn[0].address, info->persistent_address, NI_MAXHOST);
+	strlcpy(rec->conn[0].address, info->persistent_address, NI_MAXHOST);
 	memcpy(&rec->iface, &info->iface, sizeof(struct iface_rec));
 	rec->tpgt = info->tpgt;
 	iface_copy(&rec->iface, &info->iface);
@@ -180,6 +181,7 @@ static int sync_session(void *data, struct session_info *info)
 	iscsiadm_req_t req;
 	iscsiadm_rsp_t rsp;
 	struct iscsi_transport *t;
+	int rc, retries = 0;
 
 	log_debug(7, "sync session [%d][%s,%s.%d][%s]\n", info->sid,
 		  info->targetname, info->persistent_address,
@@ -246,13 +248,18 @@ static int sync_session(void *data, struct session_info *info)
 	 * app.
 	 */
 	strcpy(rec.iface.iname, info->iface.iname);
-
 	memset(&req, 0, sizeof(req));
 	req.command = MGMT_IPC_SESSION_SYNC;
 	req.u.session.sid = info->sid;
 	memcpy(&req.u.session.rec, &rec, sizeof(node_rec_t));
 
-	do_iscsid(&req, &rsp);
+retry:
+	rc = do_iscsid(&req, &rsp);
+	if (rc == MGMT_IPC_ERR_ISCSID_NOTCONN && retries < 30) {
+		retries++;
+		sleep(1);
+		goto retry;
+	}
 	return 0;
 }
 
