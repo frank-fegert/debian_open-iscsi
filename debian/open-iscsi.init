@@ -13,6 +13,7 @@ DAEMON=/usr/sbin/iscsid
 ADM=/usr/bin/iscsiadm
 PIDFILE=/var/run/iscsid.pid
 NAMEFILE=/etc/iscsi/initiatorname.iscsi
+CONFIGFILE=/etc/iscsi/iscsid.conf
 
 [ -x "$DAEMON" ] || exit 0
 
