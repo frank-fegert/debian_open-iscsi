@@ -29,7 +29,7 @@ RETVAL=0
 
 sanitychecks() {
         # Do sanity checks before we start..
-        if [ ! -e $CONFIGFILE ]; then
+        if [ ! -e "$CONFIGFILE" ]; then
                 echo
                 echo "Error: configuration file $CONFIGFILE is missing!"
                 echo "The iSCSI driver has not been correctly installed and cannot start."
