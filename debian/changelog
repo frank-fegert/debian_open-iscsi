@@ -1,3 +1,32 @@
+open-iscsi (2.0.871-1) unstable; urgency=low
+
+  [ Guido Günther ]
+  * Imported Upstream version 2.0.871
+
+  [ Ritesh Raj Sarraf ]
+  * New Upstream Release - 2.0.871
+    (Closes: #424642)
+  * Update Standards-Version to 3.8.3
+  * Change to team maintenance
+  * Add git-orig-source target
+  * Add debian/watch file
+  * Add README.source file
+  * Add quilt patches
+  * Add lintian override for static iscsistart binary
+  * Add proper lintian override
+  * Update debhelper to v7
+  * Update copyright information
+  * Improve description
+  * Stop umountiscsi and open-iscsi in runlevel 1
+  * Remove already obsolete disabled-install-indep target
+  * Replace deprecated dh_clean -k with dh_prep
+  * Refresh 001_manpages_fixes.patch
+  * Fix copyright and explain packaging licensing
+  * Fix "undefined reference to strl* when building iscsid"
+  * Provide init script service with the same name
+
+ -- Ritesh Raj Sarraf <rrs@researchut.com>  Mon, 01 Feb 2010 14:43:45 +0530
+
 open-iscsi (2.0.870~rc3-0.6) unstable; urgency=low
 
   * Non-maintainer upload.
