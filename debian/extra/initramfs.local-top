@@ -116,6 +116,6 @@ fi
 
 do_iscsi_login
 
-udevsettle
+udevadm settle
 
 exit 0
