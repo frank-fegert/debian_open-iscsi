@@ -5,7 +5,7 @@ Maintainer: Debian iSCSI Maintainers <pkg-iscsi-maintainers@lists.alioth.debian.
 Uploaders: Andrew Moise <chops@demiurgestudios.com>, Philipp Hug <debian@hug.cx>, Guido Günther <agx@sigxcpu.org>, Ritesh Raj Sarraf <rrs@researchut.com>
 DM-Upload-Allowed: yes
 Build-Depends: debhelper (>= 7.0.0), bzip2, bison, flex, quilt (>= 0.46-7)
-Standards-Version: 3.8.3
+Standards-Version: 3.8.4
 Homepage: http://www.open-iscsi.org/
 
 Package: open-iscsi

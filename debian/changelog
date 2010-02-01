@@ -9,7 +9,7 @@ open-iscsi (2.0.871-1) unstable; urgency=low
   * Fix credential passing in local-top/initramfs.local-top
     (Closes: #550012, #525053)
   * Fix settling of devices in initramfs (Closes: #501582, #488999)
-  * Update Standards-Version to 3.8.3
+  * Update Standards-Version to 3.8.4
   * Change to team maintenance
   * Add git-orig-source target
   * Add debian/watch file
@@ -30,7 +30,7 @@ open-iscsi (2.0.871-1) unstable; urgency=low
     (Closes: #501319)
   * Provide init script service with the same name
 
- -- Ritesh Raj Sarraf <rrs@researchut.com>  Mon, 01 Feb 2010 16:36:15 +0530
+ -- Ritesh Raj Sarraf <rrs@researchut.com>  Mon, 01 Feb 2010 16:50:27 +0530
 
 open-iscsi (2.0.870~rc3-0.6) unstable; urgency=low
 
