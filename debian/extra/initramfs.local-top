@@ -113,4 +113,6 @@ fi
 
 do_iscsi_login
 
+udevsettle
+
 exit 0
