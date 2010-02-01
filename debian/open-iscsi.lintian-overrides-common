@@ -1,2 +1,0 @@
-# iscsistart is usually run in the initrd
-open-iscsi binary: statically-linked-binary ./usr/sbin/iscsistart
