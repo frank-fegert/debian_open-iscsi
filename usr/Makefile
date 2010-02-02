@@ -55,7 +55,7 @@ iscsiadm: $(COMMON_SRCS) $(FW_BOOT_SRCS) strings.o discovery.o iscsiadm.o
 
 iscsistart: $(IPC_OBJ) $(ISCSI_LIB_SRCS) $(INITIATOR_SRCS) $(FW_BOOT_SRCS) \
 		iscsistart.o statics.o
-	$(CC) $(CFLAGS) -static $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 clean:
 	rm -f *.o $(PROGRAMS) .depend $(LIBSYS)
 
