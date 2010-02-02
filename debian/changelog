@@ -29,8 +29,9 @@ open-iscsi (2.0.871-1) unstable; urgency=low
   * Proper sanity check in the init script for empty strings
     (Closes: #501319)
   * Provide init script service with the same name
+  * Build iscsistart as a dynamic binary
 
- -- Ritesh Raj Sarraf <rrs@researchut.com>  Mon, 01 Feb 2010 16:50:27 +0530
+ -- Ritesh Raj Sarraf <rrs@researchut.com>  Tue, 02 Feb 2010 11:44:38 +0530
 
 open-iscsi (2.0.870~rc3-0.6) unstable; urgency=low
 
