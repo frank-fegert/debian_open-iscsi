@@ -6,6 +6,8 @@ Uploaders: Andrew Moise <chops@demiurgestudios.com>, Philipp Hug <debian@hug.cx>
 DM-Upload-Allowed: yes
 Build-Depends: debhelper (>= 7.0.0), bzip2, bison, flex, quilt (>= 0.46-7)
 Standards-Version: 3.8.4
+Vcs-Git: git://git.debian.org/git/pkg-iscsi/open-iscsi.git
+Vcs-Browser: http://git.debian.org/?p=pkg-iscsi/open-iscsi.git
 Homepage: http://www.open-iscsi.org/
 
 Package: open-iscsi

@@ -15,8 +15,7 @@ open-iscsi (2.0.871-1) unstable; urgency=low
   * Add debian/watch file
   * Add README.source file
   * Add quilt patches
-  * Add lintian override for static iscsistart binary
-  * Add proper lintian override
+  * Add Vcs headers
   * Update debhelper to v7
   * Update copyright information
   * Improve description (Closes: #504707)
@@ -31,7 +30,7 @@ open-iscsi (2.0.871-1) unstable; urgency=low
   * Provide init script service with the same name
   * Build iscsistart as a dynamic binary
 
- -- Ritesh Raj Sarraf <rrs@researchut.com>  Tue, 02 Feb 2010 11:44:38 +0530
+ -- Ritesh Raj Sarraf <rrs@researchut.com>  Sat, 06 Feb 2010 20:28:23 +0530
 
 open-iscsi (2.0.870~rc3-0.6) unstable; urgency=low
 
