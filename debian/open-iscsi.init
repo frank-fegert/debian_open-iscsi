@@ -132,6 +132,16 @@ stop() {
 		log_warning_msg "/etc/iscsi/iscsi.initramfs present, not stopping iscsid yet"
 		return 0
 	fi
+
+	# Call umountiscsi.sh to unmount iSCSI devices first
+	log_daemon_msg "Unmounting iSCSI devices"
+	/etc/init.d/umountiscsi.sh stop
+	exit_status=$?
+	if [ $exit_status -ne 0 ]; then
+		log_failure_msg "Couldn't unmount all iSCSI devices. Cannot stop iSCSI service"
+		exit 1
+	fi
+
 	stoptargets
 	log_daemon_msg "Stopping iSCSI initiator service"
 	start-stop-daemon --stop --quiet --pidfile $PIDFILE --signal KILL --exec $DAEMON
