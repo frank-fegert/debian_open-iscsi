@@ -45,7 +45,7 @@ case "$1" in
         do_stop
 	;;
     *)
-        echo "Usage: stop-open-iscsi.sh [start|stop]" >&2
+        echo "Usage: umountiscsi.sh [start|stop]" >&2
 	exit 3
 	;;
 esac
