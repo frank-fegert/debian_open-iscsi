@@ -1981,6 +1981,8 @@ void iscsi_sched_conn_context(struct iscsi_conn_context *conn_context,
 			      struct iscsi_conn *conn, unsigned long tmo,
 			      int event)
 {
+	enum iscsi_err error;
+
 	log_debug(7, "sched conn context %p event %d, tmo %lu",
 		  &conn_context->actor, event, tmo);
 
@@ -1992,9 +1994,19 @@ void iscsi_sched_conn_context(struct iscsi_conn_context *conn_context,
 		actor_schedule(&conn_context->actor);
 		break;
 	case EV_CONN_ERROR:
+		error = *(enum iscsi_err *)conn_context->data;
+
 		actor_new(&conn_context->actor, session_conn_error,
 			  conn_context);
-		actor_schedule(&conn_context->actor);
+		/*
+		 * We handle invalid host, by killing the session.
+		 * It must go at the head of the queue, so we do not
+		 * initiate error handling or logout or some other op.
+		 */
+		if (error == ISCSI_ERR_INVALID_HOST)
+			actor_schedule_head(&conn_context->actor);
+		else
+			actor_schedule(&conn_context->actor);
 		break;
 	case EV_CONN_POLL:
 		actor_new(&conn_context->actor, session_conn_poll,
@@ -2075,9 +2087,15 @@ static int iface_set_param(struct iscsi_transport *t, struct iface_rec *iface,
 		  iface->name, iface->netdev, iface->ipaddress,
 		  iface->hwaddress, iface->transport_name);
 
-	/* if we need to set the ip addr then set all the iface net settings */
-	if (!iface_is_bound_by_ipaddr(iface))
+	if (!t->template->set_host_ip)
 		return 0;
+
+	/* if we need to set the ip addr then set all the iface net settings */
+	if (!iface_is_bound_by_ipaddr(iface)) {
+		log_warning("Please set the iface.ipaddress for iface %s, "
+			    "then retry the login command.\n", iface->name);
+		return EINVAL;
+	}
 
 	/* this assumes that the netdev or hw address is going to be set */
 	hostno = iscsi_sysfs_get_host_no_from_hwinfo(iface, &rc);
