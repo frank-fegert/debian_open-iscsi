@@ -134,7 +134,6 @@ stop() {
 	fi
 
 	# Call umountiscsi.sh to unmount iSCSI devices first
-	log_daemon_msg "Unmounting iSCSI devices"
 	invoke-rc.d umountiscsi.sh stop
 	exit_status=$?
 	if [ $exit_status -ne 0 ]; then
