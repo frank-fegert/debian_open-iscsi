@@ -1,3 +1,12 @@
+open-iscsi (2.0.871.3-1) unstable; urgency=low
+
+  * New upstream release (Closes: #564012, #566511) 
+  * Don't stop iscsid if root is on an iSCSI device. Not an ideal solution,
+    but saves us from the catastrophe of the entire system going hung
+    (Closes: #501580) 
+
+ -- Ritesh Raj Sarraf <rrs@researchut.com>  Wed, 24 Mar 2010 19:07:22 +0530
+
 open-iscsi (2.0.871-1) unstable; urgency=low
 
   [ Guido Günther ]
