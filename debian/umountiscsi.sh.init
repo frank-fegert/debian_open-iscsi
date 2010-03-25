@@ -34,7 +34,7 @@ do_stop () {
 				umount $DEVICE
 				exit_status=$?
 				if ! [ $exit_status -eq 0 ]; then
-					umount_fail=`expr $umount_fail + 1`
+					umount_fail=1
 					log_warning_msg "Could not unmount $DEVICE"
 				fi
 			done
