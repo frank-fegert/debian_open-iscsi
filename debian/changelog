@@ -3,8 +3,10 @@ open-iscsi (2.0.871.3-2) UNRELEASED; urgency=low
   * Break down and add quilt patches
     + 003_Fix-CVE-2009-1297.patch
     + 004_make-iscsistart-a-dynamic-binary.patch
+  * Add some explanation about initiatorname.iscsi into README.Debian
+    (Closes: #507003) 
 
- -- Ritesh Raj Sarraf <rrs@researchut.com>  Sat, 03 Apr 2010 11:23:12 +0530
+ -- Ritesh Raj Sarraf <rrs@researchut.com>  Sat, 03 Apr 2010 16:14:14 +0530
 
 open-iscsi (2.0.871.3-1) unstable; urgency=low
 

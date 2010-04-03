@@ -25,6 +25,21 @@ change node.startup to automatic as above, and also add _netdev to
 the mount options (in /etc/fstab) for the filesystems you would like
 to mount automatically when open-iscsi is started.
 
+
+iSCSI Qualified Names (IQN) and initiatorname.iscsi
+-----------------------------------
+
+The initiatorname.iscsi file defines the iSCSI Qualified Name (IQN) of the iSCSI 
+initiator. This IQN is used by the initiator to identify itself to the target.
+
+Example: InitiatorName=iqn.1993-08.org.debian:01:lnx-debian
+
+While this name can be adjusted to suit your needs, once set, it should not be 
+changed. If you later change the InitiatorName, existing access control lists 
+on the target may reject the initiator to log in. In case a name change is 
+required, the access control lists on the target will need to be updated.
+
+
 Root on iSCSI
 -----------------------------------
 
