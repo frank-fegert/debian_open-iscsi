@@ -5,8 +5,10 @@ open-iscsi (2.0.871.3-2) UNRELEASED; urgency=low
     + 004_make-iscsistart-a-dynamic-binary.patch
   * Add some explanation about initiatorname.iscsi into README.Debian
     (Closes: #507003) 
+  * Fix double variable assignment in initramfs.local-top. Thanks to Aurelien
+    Jarno (Closes: #576786) 
 
- -- Ritesh Raj Sarraf <rrs@researchut.com>  Sat, 03 Apr 2010 16:14:14 +0530
+ -- Ritesh Raj Sarraf <rrs@researchut.com>  Wed, 07 Apr 2010 17:56:26 +0530
 
 open-iscsi (2.0.871.3-1) unstable; urgency=low
 

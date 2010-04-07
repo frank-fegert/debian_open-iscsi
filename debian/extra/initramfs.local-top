@@ -42,22 +42,6 @@ do_iscsi_login ()
 		ISCSI_TARGET_GROUP=1
 	fi
 
-	if [ ! -z "$ISCSI_USERNAME" ]; then
-		ISCSI_USERNAME="-u $ISCSI_USERNAME"
-	fi
-
-	if [ ! -z "$ISCSI_PASSWORD" ]; then
-		ISCSI_PASSWORD="-w $ISCSI_PASSWORD"
-	fi
-
-	if [ ! -z "$ISCSI_IN_USERNAME" ]; then
-		ISCSI_IN_USERNAME="-U $ISCSI_IN_USERNAME"
-	fi
-
-	if [ ! -z "$ISCSI_IN_PASSWORD" ]; then
-		ISCSI_IN_PASSWORD="-W $ISCSI_IN_PASSWORD"
-	fi
-
 	iscsistart -i $ISCSI_INITIATOR -t $ISCSI_TARGET_NAME	\
 		   -g $ISCSI_TARGET_GROUP -a $ISCSI_TARGET_IP	\
 		   -p $ISCSI_TARGET_PORT \
