@@ -7,10 +7,8 @@ open-iscsi (2.0.871.3-2) UNRELEASED; urgency=low
     (Closes: #507003) 
   * Fix double variable assignment in initramfs.local-top. Thanks to Aurelien
     Jarno (Closes: #576786) 
-  * Start the open-iscsi service in runlevels 2 3 4 and 5 only.
-    (Closes: #578250)
 
- -- Ritesh Raj Sarraf <rrs@researchut.com>  Sun, 02 May 2010 00:36:34 +0530
+ -- Ritesh Raj Sarraf <rrs@researchut.com>  Wed, 07 Apr 2010 17:56:26 +0530
 
 open-iscsi (2.0.871.3-1) unstable; urgency=low
 
