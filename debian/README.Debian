@@ -11,6 +11,14 @@ restart of iscsid will break the iscsi block devices and prevent any
 outstanding I/O from completing (and require a remount before the
 filesystems will work again).
 
+
+64 bit kernel with 32 bit userspace
+-----------------------------------
+open-iscsi running with a 64 bit kernel and 32 bit userspace
+can run into a hang during the iSCSI login phase. This is a known
+issue upstream. For details, please see Debian BTS #502845
+
+
 Automatic login and mount
 -----------------------------------
 
