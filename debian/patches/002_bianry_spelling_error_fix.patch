@@ -1,8 +1,8 @@
 Fix many spelling errors in source code
 Index: b/usr/initiator.c
 ===================================================================
---- a/usr/initiator.c	2010-06-08 19:05:09.897023779 +0530
-+++ b/usr/initiator.c	2010-06-08 19:15:55.741530753 +0530
+--- a/usr/initiator.c	2010-06-08 14:09:09.999743105 +0530
++++ b/usr/initiator.c	2010-06-08 19:04:43.309050527 +0530
 @@ -1719,7 +1719,7 @@
  	case STATE_LOGGED_IN:
  	case STATE_IN_LOGOUT:
@@ -29,8 +29,8 @@ Index: b/usr/initiator.c
  	default:
 Index: b/usr/initiator.h
 ===================================================================
---- a/usr/initiator.h	2010-06-08 19:05:09.885024827 +0530
-+++ b/usr/initiator.h	2010-06-08 19:15:55.741530753 +0530
+--- a/usr/initiator.h	2010-06-08 14:09:09.991750787 +0530
++++ b/usr/initiator.h	2010-06-08 19:04:43.309050527 +0530
 @@ -143,7 +143,7 @@
  	int socket_fd;
  	/* address being used for normal session connection */
@@ -42,8 +42,8 @@ Index: b/usr/initiator.h
  	int type_of_service;
 Index: b/usr/netlink.c
 ===================================================================
---- a/usr/netlink.c	2010-06-08 19:05:09.865053112 +0530
-+++ b/usr/netlink.c	2010-06-08 19:17:19.441107030 +0530
+--- a/usr/netlink.c	2010-06-08 14:09:09.983743663 +0530
++++ b/usr/netlink.c	2010-06-08 19:04:43.313051715 +0530
 @@ -282,7 +282,7 @@
  				}
  				if (ev->iferror == -ENOSYS)
@@ -53,12 +53,3 @@ Index: b/usr/netlink.c
  						  ev->iferror,
  						  strerror(ev->iferror));
  				else if (ev->iferror < 0)
-@@ -831,7 +831,7 @@
- 	ev.u.ep_disconnect.ep_handle = conn->transport_ep_handle;
- 
- 	if ((rc = __kipc_call(&ev, sizeof(ev))) < 0) {
--		log_error("connnection %d:%d transport disconnect failed for "
-+		log_error("connection %d:%d transport disconnect failed for "
- 			  "ep %" PRIu64 " with error %d.", conn->session->id,
- 			  conn->id, conn->transport_ep_handle, rc);
- 	} else
