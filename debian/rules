@@ -26,7 +26,6 @@ endif
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	dh_quilt_patch
 	# Add here commands to configure the package.
 
 	touch configure-stamp
@@ -55,7 +54,6 @@ build-indep-stamp: configure-stamp
 clean:
 	dh_testdir
 	dh_testroot
-	dh_quilt_unpatch
 	rm -f build-arch-stamp build-indep-stamp configure-stamp
 
 	# Add here commands to clean up after the build process.
