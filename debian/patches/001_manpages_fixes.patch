@@ -1,8 +1,8 @@
 Man pages typo fixes
-Index: open-iscsi/doc/iscsi_discovery.8
+Index: open-iscsi-guido/doc/iscsi_discovery.8
 ===================================================================
---- open-iscsi.orig/doc/iscsi_discovery.8	2010-06-08 10:30:06.508188132 +0530
-+++ open-iscsi/doc/iscsi_discovery.8	2010-06-08 13:59:45.575271818 +0530
+--- open-iscsi-guido.orig/doc/iscsi_discovery.8	2010-01-30 12:02:46.179903346 +0530
++++ open-iscsi-guido/doc/iscsi_discovery.8	2010-01-30 12:02:49.323883715 +0530
 @@ -13,9 +13,9 @@
  .SH DESCRIPTION
  Perform send-targets discovery to the specified IP. If a discovery record
@@ -24,10 +24,10 @@ Index: open-iscsi/doc/iscsi_discovery.8
  
  .TP
  .BI [-m]
-Index: open-iscsi/doc/iscsiadm.8
+Index: open-iscsi-guido/doc/iscsiadm.8
 ===================================================================
---- open-iscsi.orig/doc/iscsiadm.8	2010-06-08 10:30:06.508188132 +0530
-+++ open-iscsi/doc/iscsiadm.8	2010-06-08 13:59:45.591271748 +0530
+--- open-iscsi-guido.orig/doc/iscsiadm.8	2010-01-30 12:02:46.251887347 +0530
++++ open-iscsi-guido/doc/iscsiadm.8	2010-01-30 12:03:29.103890536 +0530
 @@ -2,21 +2,21 @@
  .SH NAME
  iscsiadm \- open-iscsi administration utility
