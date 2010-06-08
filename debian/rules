@@ -87,6 +87,7 @@ install-arch:
 	install -m 755 utils/iscsi-iname $(CURDIR)/debian/open-iscsi/usr/sbin
 	install -m 644 debian/initiatorname.iscsi $(CURDIR)/debian/open-iscsi/etc/iscsi/initiatorname.iscsi
 	install -m 644 etc/iscsid.conf $(CURDIR)/debian/open-iscsi/etc/iscsi
+	install -m 644 debian/open-iscsi.default $(CURDIR)/debian/open-iscsi/etc/default/open-iscsi
 
 	# initramfs stuff
 	install -m 755 debian/extra/initramfs.hook \
