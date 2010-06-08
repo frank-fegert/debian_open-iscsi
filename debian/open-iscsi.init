@@ -19,6 +19,12 @@ CONFIGFILE=/etc/iscsi/iscsid.conf
 
 . /lib/lsb/init-functions
 
+# Include defaults if available
+if [ -f /etc/default/open-iscsi ]; then
+	. /etc/default/open-iscsi
+fi
+
+
 if [ ! -d /sys/class/ ]; then
   log_failure_msg "iSCSI requires a mounted sysfs, not started."
   exit 0
@@ -100,6 +106,23 @@ start() {
 		udevadm settle
 	fi
 
+
+	# Handle iSCSI LVM devices
+	if [ ! -x "/sbin/vgchange" -a -n "$LVMGROUPS" ]; then
+		log_warning_msg "LVM2 tools are not installed, not honouring LVMGROUPS."
+		LMVGROUPS=""
+	fi
+
+	if [ -n "$LVMGROUPS" ]; then
+		log_daemon_msg "Activating iSCSI volume groups"
+		for vg in "$LVMGROUPS"; do
+			log_progress_msg $vg
+			vgchange --available=y $vg
+		done
+		log_end_msg 0
+	fi
+
+	# Now let's mount
 	log_daemon_msg "Mounting network filesystems"
 	MOUNT_RESULT=1
 	if mount -a -O _netdev >/dev/null 2>&1; then

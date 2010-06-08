@@ -1,0 +1,9 @@
+# List of LVMed iSCSI Volume Groups.
+# Multiple Volume Groups can be specified with spaces
+LVMGROUPS=""
+
+
+# Handle _netdev devices
+# Hanling _netdev devices comes with the caveat that other _netdev mounts
+# like an NFS share also get pulled in with it
+HANDLE_NETDEV=1

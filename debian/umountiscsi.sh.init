@@ -12,10 +12,37 @@
 
 . /lib/lsb/init-functions
 
+
+# Include defaults if available
+if [ -f /etc/default/open-iscsi ]; then
+	. /etc/default/open-iscsi
+fi
+
+
 do_stop () {
     log_daemon_msg "Unmounting iscsi-backed filesystems"
 
     umount_fail=0
+
+    if [ $HANDLE_NETDEV -eq 1 ]; then
+	    log_progress_msg "Unmounting all devices marked _netdev";
+	    umount -a -O _netdev >/dev/null 2>&1
+    fi
+
+
+    # Now handle iSCSI LVM Volumes
+    if [ -n "$LVMGROUPS" ]; then
+    	log_daemon_msg "Deactivating iSCSI volume groups"
+    	for vg in "$LVMGROUPS"; do
+    		log_progress_msg $vg
+    		vgchange --available=n $vg
+		if [ $? -ne 0 ]; then
+			log_warning_msg "Cannot deactivate Volume Group $vg"
+			umount_fail=1
+		fi
+    	done
+    	log_end_msg 0
+    fi
 
     for HOST_DIR in /sys/devices/platform/host*; do
 	if ! [ -d $HOST_DIR/iscsi_host* ]; then
