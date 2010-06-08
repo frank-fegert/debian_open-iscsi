@@ -2,6 +2,7 @@ usr/bin
 usr/sbin
 var/lib/open-iscsi
 etc/init.d
+etc/default
 etc
 etc/iscsi
 etc/network/if-up.d
