@@ -1,4 +1,4 @@
-open-iscsi (2.0.871.3-2) UNRELEASED; urgency=low
+open-iscsi (2.0.871.3-2) unstable; urgency=low
 
   * Break down and add quilt patches
     + 003_Fix-CVE-2009-1297.patch
@@ -13,7 +13,7 @@ open-iscsi (2.0.871.3-2) UNRELEASED; urgency=low
   * Handle iSCSI LVM devices and devices marked _netdev (Closes: #498616) 
   * Switch to 3.0 (quilt) source format 
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Tue, 08 Jun 2010 12:23:41 +0530
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Fri, 11 Jun 2010 12:33:02 +0530
 
 open-iscsi (2.0.871.3-1) unstable; urgency=low
 
