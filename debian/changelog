@@ -1,10 +1,13 @@
-open-iscsi (2.0.871.3-3) unstable; urgency=low
+open-iscsi (2.0.871.3-3) UNRELEASED; urgency=low
 
   * Install iscsid.conf with 0600 permission as it can contain passwords
     (Closes: #472965)
   * Provide an example for iSCSI root installation (Closes: #492358) 
+  * Add support to enable multiple session to the iSCSI Target in the
+    initramfs. Thanks to Norbert Tretkowski for the patch.
+    (Closes: #598773) 
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Wed, 23 Jun 2010 12:44:08 +0530
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Sat, 02 Oct 2010 12:29:29 +0530
 
 open-iscsi (2.0.871.3-2) unstable; urgency=low
 

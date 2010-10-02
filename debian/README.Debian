@@ -90,3 +90,8 @@ You also won't want to restart the device during boot, so set it to manual
 mode in /etc/networking/interfaces.  Leave BOOT=local set in
 /etc/initramfs-tools/initramfs.conf and provide a root=/dev/sd* device as
 the iSCSI disk will look like a local disk.
+
+Note: If you need multiple sessions in the initramfs, you can provide multiple IPs
+to the ISCSI_TARGET_IP variable.
+Eg: ISCSI_TARGET_IP="192.168.1.1 192.168.2.1 192.168.3.1"
+This will allow login into all the Target IPs in the initrafs.
