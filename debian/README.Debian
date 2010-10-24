@@ -53,7 +53,15 @@ Root on iSCSI
 
 The Debian open-iscsi package now supports root filesystem on iSCSI.  Support
 for this is controlled by the existence of the /etc/iscsi/iscsi.initramfs file.
-There are two ways to include iSCSI boot support in your initramfs:
+
+If you are booting from an iSCSI accelerator or NIC that supports iSCSI boot
+natively, you can likely have your iSCSI target mounted without any manual
+configuration. Either place the single line "ISCSI_AUTO=true" into
+/etc/iscsi/iscsi.initramfs, or touch /etc/iscsi/iscsi.initramfs and use the
+kernel boot line option "iscsi_auto".
+
+If manual configuration is necessary, there are two ways to include iSCSI boot 
+options in your initramfs:
 
 1) Touch /etc/iscsi/iscsi.initramfs and provide options on the command line.
    This provides flexibility, but if passwords are used, is not very secure.
