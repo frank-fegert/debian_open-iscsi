@@ -27,6 +27,7 @@ IFACEFILES = etc/iface.example
 all: user kernel
 
 user: ;
+	cd utils/open-isns; ./configure; $(MAKE)
 	$(MAKE) -C utils/sysdeps
 	$(MAKE) -C utils/fwparam_ibft
 	$(MAKE) -C usr
@@ -57,6 +58,8 @@ clean:
 	$(MAKE) -C utils clean
 	$(MAKE) -C usr clean
 	$(MAKE) -C kernel clean
+	$(MAKE) -C utils/open-isns clean
+	$(MAKE) -C utils/open-isns distclean
 
 # this is for safety
 # now -jXXX will still be safe
@@ -123,9 +126,9 @@ install_kernel:
 
 install_iname:
 	if [ ! -f /etc/iscsi/initiatorname.iscsi ]; then \
-		echo "InitiatorName=`/sbin/iscsi-iname`" > /etc/iscsi/initiatorname.iscsi ; \
+		echo "InitiatorName=`$(DESTDIR)/sbin/iscsi-iname`" > $(DESTDIR)/etc/iscsi/initiatorname.iscsi ; \
 		echo "***************************************************" ; \
-		echo "Setting InitiatorName to `cat /etc/iscsi/initiatorname.iscsi`" ; \
+		echo "Setting InitiatorName to `cat $(DESTDIR)/etc/iscsi/initiatorname.iscsi`" ; \
 		echo "To override edit /etc/iscsi/initiatorname.iscsi" ; \
 		echo "***************************************************" ; \
 	fi

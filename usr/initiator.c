@@ -40,7 +40,7 @@
 #include "iscsi_ipc.h"
 #include "idbm.h"
 #include "log.h"
-#include "util.h"
+#include "iscsi_util.h"
 #include "scsi.h"
 #include "iscsi_sysfs.h"
 #include "iscsi_settings.h"
@@ -260,8 +260,7 @@ __setup_authentication(iscsi_session_t *session,
 	if (auth_cfg->username_in[0]
 	    || auth_cfg->password_in_length) {
 		/* sanity check the config */
-		if ((auth_cfg->username[0] == '\0')
-		    || (auth_cfg->password_length == 0)) {
+		if (auth_cfg->password_length == 0) {
 			log_debug(1,
 			       "node record has incoming "
 			       "authentication credentials but has no outgoing "
@@ -349,11 +348,6 @@ iscsi_copy_operational_params(iscsi_conn_t *conn)
 	conn_rec_t *conn_rec = &session->nrec.conn[conn->id];
 	node_rec_t *rec = &session->nrec;
 
-	/*
-	 * iSCSI default, unless declared otherwise by the
-	 * target during login
-	 */
-	conn->max_xmit_dlength = ISCSI_DEF_MAX_RECV_SEG_LEN;
 	conn->hdrdgst_en = conn_rec->iscsi.HeaderDigest;
 	conn->datadgst_en = conn_rec->iscsi.DataDigest;
 
@@ -369,6 +363,23 @@ iscsi_copy_operational_params(iscsi_conn_t *conn)
 		conn_rec->iscsi.MaxRecvDataSegmentLength =
 						DEF_INI_MAX_RECV_SEG_LEN;
 		conn->max_recv_dlength = DEF_INI_MAX_RECV_SEG_LEN;
+	}
+
+	/* zero indicates to use the target's value */
+	conn->max_xmit_dlength =
+			__padding(conn_rec->iscsi.MaxXmitDataSegmentLength);
+	if (conn->max_xmit_dlength == 0)
+		conn->max_xmit_dlength = ISCSI_DEF_MAX_RECV_SEG_LEN;
+	if (conn->max_xmit_dlength < ISCSI_MIN_MAX_RECV_SEG_LEN ||
+	    conn->max_xmit_dlength > ISCSI_MAX_MAX_RECV_SEG_LEN) {
+		log_error("Invalid iscsi.MaxXmitDataSegmentLength. Must be "
+			 "within %u and %u. Setting to %u\n",
+			  ISCSI_MIN_MAX_RECV_SEG_LEN,
+			  ISCSI_MAX_MAX_RECV_SEG_LEN,
+			  DEF_INI_MAX_RECV_SEG_LEN);
+		conn_rec->iscsi.MaxXmitDataSegmentLength =
+						DEF_INI_MAX_RECV_SEG_LEN;
+		conn->max_xmit_dlength = DEF_INI_MAX_RECV_SEG_LEN;
 	}
 
 	/* session's operational parameters */
@@ -503,6 +514,7 @@ static iscsi_session_t*
 __session_create(node_rec_t *rec, struct iscsi_transport *t)
 {
 	iscsi_session_t *session;
+	int hostno, rc = 0;
 
 	session = calloc(1, sizeof (*session));
 	if (session == NULL) {
@@ -543,14 +555,10 @@ __session_create(node_rec_t *rec, struct iscsi_transport *t)
 
 	/* session's eh parameters */
 	session->replacement_timeout = rec->session.timeo.replacement_timeout;
-	if (session->replacement_timeout == 0) {
-		log_error("Cannot set replacement_timeout to zero. Setting "
-			  "120 seconds\n");
-		session->replacement_timeout = DEF_REPLACEMENT_TIMEO;
-	}
 	session->fast_abort = rec->session.iscsi.FastAbort;
 	session->abort_timeout = rec->session.err_timeo.abort_timeout;
 	session->lu_reset_timeout = rec->session.err_timeo.lu_reset_timeout;
+	session->tgt_reset_timeout = rec->session.err_timeo.tgt_reset_timeout;
 	session->host_reset_timeout = rec->session.err_timeo.host_reset_timeout;
 
 	/* OUI and uniqifying number */
@@ -574,6 +582,17 @@ __session_create(node_rec_t *rec, struct iscsi_transport *t)
 	if (!(t->caps & CAP_MARKERS)) {
 		session->param_mask &= ~ISCSI_IFMARKER_EN;
 		session->param_mask &= ~ISCSI_OFMARKER_EN;
+	}
+
+	hostno = iscsi_sysfs_get_host_no_from_hwinfo(&rec->iface, &rc);
+	if (!rc) {
+		/*
+		 * if the netdev or mac was set, then we are going to want
+		 * to want to bind the all the conns/eps to a specific host
+		 * if offload is used.
+		 */
+		session->conn[0].bind_ep = 1;
+		session->hostno = hostno;
 	}
 
 	list_add_tail(&session->list, &t->sessions);
@@ -658,6 +677,13 @@ cleanup:
 			return MGMT_IPC_ERR_INTERNAL;
 		}
 	}
+
+	log_warning("Connection%d:%d to [target: %s, portal: %s,%d] "
+		    "through [iface: %s] is shutdown.",
+		    session->id, conn->id, session->nrec.name,
+		    session->nrec.conn[conn->id].address,
+		    session->nrec.conn[conn->id].port,
+		    session->nrec.iface.name);
 
 	mgmt_ipc_write_rsp(qtask, err);
 	conn_delete_timers(conn);
@@ -1153,7 +1179,7 @@ static void session_scan_host(struct iscsi_session *session, int hostno,
 					iscsi_sysfs_set_queue_depth);
 		exit(0);
 	} else if (pid > 0) {
-		need_reap();
+		reap_inc();
 		if (qtask) {
 			close(qtask->mgmt_ipc_fd);
 			free(qtask);
@@ -1191,7 +1217,7 @@ mgmt_ipc_err_e iscsi_host_set_param(int host_no, int param, char *value)
         return MGMT_IPC_OK;
 }
 
-#define MAX_SESSION_PARAMS 31
+#define MAX_SESSION_PARAMS 32
 #define MAX_HOST_PARAMS 3
 
 static void
@@ -1366,6 +1392,11 @@ setup_full_feature_phase(iscsi_conn_t *conn)
 			.type = ISCSI_INT,
 			.conn_only = 0,
 		}, {
+			.param = ISCSI_PARAM_TGT_RESET_TMO,
+			.value = &session->tgt_reset_timeout,
+			.type = ISCSI_INT,
+			.conn_only = 0,
+		}, {
 			.param = ISCSI_PARAM_PING_TMO,
 			.value = &conn->noop_out_timeout,
 			.type = ISCSI_INT,
@@ -1463,8 +1494,12 @@ setup_full_feature_phase(iscsi_conn_t *conn)
 		if (conn->id == 0)
 			session_scan_host(session, session->hostno, c->qtask);
 
-		log_warning("connection%d:%d is operational now",
-			    session->id, conn->id);
+		log_warning("Connection%d:%d to [target: %s, portal: %s,%d] "
+			    "through [iface: %s] is operational now",
+			    session->id, conn->id, session->nrec.name,
+			    session->nrec.conn[conn->id].address,
+			    session->nrec.conn[conn->id].port,
+			    session->nrec.iface.name);
 	} else {
 		session->sync_qtask = NULL;
 
@@ -1719,7 +1754,7 @@ static void session_conn_recv_pdu(void *data)
 	case STATE_LOGGED_IN:
 	case STATE_IN_LOGOUT:
 	case STATE_LOGOUT_REQUESTED:
-		/* read incomming PDU */
+		/* read incoming PDU */
 		if (!iscsi_io_recv_pdu(conn, &hdr, ISCSI_DIGEST_NONE,
 			    conn->data, ISCSI_DEF_MAX_RECV_SEG_LEN,
 			    ISCSI_DIGEST_NONE, 0)) {
@@ -1743,12 +1778,12 @@ static void session_conn_recv_pdu(void *data)
 		break;
 	case STATE_XPT_WAIT:
 		iscsi_conn_context_put(conn_context);
-		log_debug(1, "ignoring incomming PDU in XPT_WAIT. "
+		log_debug(1, "ignoring incoming PDU in XPT_WAIT. "
 			  "let connection re-establish or fail");
 		break;
 	case STATE_CLEANUP_WAIT:
 		iscsi_conn_context_put(conn_context);
-		log_debug(1, "ignoring incomming PDU in XPT_WAIT. "
+		log_debug(1, "ignoring incoming PDU in XPT_WAIT. "
 			  "let connection cleanup");
 		break;
 	default:
@@ -1909,7 +1944,7 @@ static void session_conn_poll(void *data)
 		/* do not allocate new connection in case of reopen */
 		if (session->id == -1) {
 			if (conn->id == 0 && session_ipc_create(session)) {
-				log_error("can't create session (%d)", errno);
+				log_error("Can't create session.");
 				err = MGMT_IPC_ERR_INTERNAL;
 				goto cleanup;
 			}
@@ -1918,8 +1953,7 @@ static void session_conn_poll(void *data)
 
 			if (ipc->create_conn(session->t->handle,
 					session->id, conn->id, &conn->id)) {
-				log_error("can't create connection (%d)",
-					   errno);
+				log_error("Can't create connection.");
 				err = MGMT_IPC_ERR_INTERNAL;
 				goto cleanup;
 			}
@@ -2064,7 +2098,7 @@ static iscsi_session_t* session_find_by_rec(node_rec_t *rec)
  * a session could be running in the kernel but not in iscsid
  * due to a resync or becuase some other app started the session
  */
-int session_is_running(node_rec_t *rec)
+static int session_is_running(node_rec_t *rec)
 {
 	int nr_found = 0;
 
@@ -2080,7 +2114,7 @@ int session_is_running(node_rec_t *rec)
 static int iface_set_param(struct iscsi_transport *t, struct iface_rec *iface,
 			   struct iscsi_session *session)
 {
-	int rc = 0, hostno;
+	int rc = 0;
 
 	log_debug(3, "setting iface %s, dev %s, set ip %s, hw %s, "
 		  "transport %s.\n",
@@ -2096,13 +2130,6 @@ static int iface_set_param(struct iscsi_transport *t, struct iface_rec *iface,
 			    "then retry the login command.\n", iface->name);
 		return EINVAL;
 	}
-
-	/* this assumes that the netdev or hw address is going to be set */
-	hostno = iscsi_sysfs_get_host_no_from_hwinfo(iface, &rc);
-	if (rc)
-		return rc;
-	session->conn[0].bind_ep = 1;
-	session->hostno = hostno;
 
 	rc = __iscsi_host_set_param(t, session->hostno,
 				    ISCSI_HOST_PARAM_IPADDRESS,
@@ -2135,11 +2162,8 @@ session_login_task(node_rec_t *rec, queue_task_t *qtask)
 	iscsi_conn_t *conn;
 	struct iscsi_transport *t;
 
-	if (session_is_running(rec)) {
-		log_error("session [%s,%s,%d] already running.", rec->name,
-			  rec->conn[0].address, rec->conn[0].port);
+	if (session_is_running(rec))
 		return MGMT_IPC_ERR_EXISTS;
-	}
 
 	t = iscsi_sysfs_get_transport_by_name(rec->iface.transport_name);
 	if (!t)

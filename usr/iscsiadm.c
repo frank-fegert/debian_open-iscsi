@@ -29,11 +29,11 @@
 #include <sys/stat.h>
 
 #include "initiator.h"
-#include "iscsiadm.h"
+#include "discovery.h"
 #include "log.h"
 #include "mgmt_ipc.h"
 #include "idbm.h"
-#include "util.h"
+#include "iscsi_util.h"
 #include "transport.h"
 #include "version.h"
 #include "iscsi_sysfs.h"
@@ -44,6 +44,10 @@
 #include "session_info.h"
 #include "host.h"
 #include "sysdeps.h"
+#include "idbm_fields.h"
+#include "session_mgmt.h"
+#include "iscsid_req.h"
+#include "isns-proto.h"
 
 struct iscsi_ipc *ipc = NULL; /* dummy */
 static char program_name[] = "iscsiadm";
@@ -51,6 +55,7 @@ static char config_file[TARGET_NAME_MAXLEN];
 
 enum iscsiadm_mode {
 	MODE_DISCOVERY,
+	MODE_DISCOVERYDB,
 	MODE_NODE,
 	MODE_SESSION,
 	MODE_HOST,
@@ -59,11 +64,12 @@ enum iscsiadm_mode {
 };
 
 enum iscsiadm_op {
-	OP_NOOP		= 0x0,
-	OP_NEW		= 0x1,
-	OP_DELETE	= 0x2,
-	OP_UPDATE	= 0x4,
-	OP_SHOW		= 0x8,
+	OP_NOOP			= 0x0,
+	OP_NEW			= 0x1,
+	OP_DELETE		= 0x2,
+	OP_UPDATE		= 0x4,
+	OP_SHOW			= 0x8,
+	OP_NONPERSISTENT	= 0x10
 };
 
 static struct option const long_options[] =
@@ -80,6 +86,7 @@ static struct option const long_options[] =
 	{"sid", required_argument, NULL, 'r'},
 	{"rescan", no_argument, NULL, 'R'},
 	{"print", required_argument, NULL, 'P'},
+	{"discover", no_argument, NULL, 'D'},
 	{"login", no_argument, NULL, 'l'},
 	{"loginall", required_argument, NULL, 'L'},
 	{"logout", no_argument, NULL, 'u'},
@@ -92,7 +99,7 @@ static struct option const long_options[] =
 	{"help", no_argument, NULL, 'h'},
 	{NULL, 0, NULL, 0},
 };
-static char *short_options = "RlVhm:p:P:T:H:I:U:k:L:d:r:n:v:o:sSt:u";
+static char *short_options = "RlDVhm:p:P:T:H:I:U:k:L:d:r:n:v:o:sSt:u";
 
 static void usage(int status)
 {
@@ -101,9 +108,10 @@ static void usage(int status)
 			program_name);
 	else {
 		printf("\
-iscsiadm -m discovery [ -hV ] [ -d debug_level ] [-P printlevel] [ -t type -p ip:port -I ifaceN ... [ -l ] ] | [ -p ip:port ] \
-[ -o operation ] [ -n name ] [ -v value ]\n\
-iscsiadm -m node [ -hV ] [ -d debug_level ] [ -P printlevel ] [ -L all,manual,automatic ] [ -U all,manual,automatic ] [ -S ] [ [ -T targetname -p ip:port -I ifaceN ] [ -l | -u | -R | -s] ] \
+iscsiadm -m discovery2 [ -hV ] [ -d debug_level ] [-P printlevel] [ -t type -p ip:port -I ifaceN ... [ -Dl ] ] | [ [ -p ip:port -t type] \
+[ -o operation ] [ -n name ] [ -v value ] [ -lD ] ] \n\
+iscsiadm -m discovery [ -hV ] [ -d debug_level ] [-P printlevel] [ -t type -p ip:port -I ifaceN ... [ -l ] ] | [ [ -p ip:port ] [ -l | -D ] ] \n\
+iiscsiadm -m node [ -hV ] [ -d debug_level ] [ -P printlevel ] [ -L all,manual,automatic ] [ -U all,manual,automatic ] [ -S ] [ [ -T targetname -p ip:port -I ifaceN ] [ -l | -u | -R | -s] ] \
 [ [ -o  operation  ] [ -n name ] [ -v value ] ]\n\
 iscsiadm -m session [ -hV ] [ -d debug_level ] [ -P  printlevel] [ -r sessionid | sysfsdir [ -R | -u | -s ] [ -o operation ] [ -n name ] [ -v value ] ]\n\
 iscsiadm -m iface [ -hV ] [ -d debug_level ] [ -P printlevel ] [ -I ifacename ] [ [ -o  operation  ] [ -n name ] [ -v value ] ]\n\
@@ -127,6 +135,8 @@ str_to_op(char *str)
 		op = OP_UPDATE;
 	else if (!strcmp("show", str))
 		op = OP_SHOW;
+	else if (!strcmp("nonpersistent", str))
+		op = OP_NONPERSISTENT;
 	else
 		op = OP_NOOP;
 
@@ -140,6 +150,8 @@ str_to_mode(char *str)
 
 	if (!strcmp("discovery", str))
 		mode = MODE_DISCOVERY;
+	else if (!strcmp("discoverydb", str))
+		mode = MODE_DISCOVERYDB;
 	else if (!strcmp("node", str))
 		mode = MODE_NODE;
 	else if (!strcmp("session", str))
@@ -198,7 +210,7 @@ static void kill_iscsid(int priority)
 
 	memset(&req, 0, sizeof(req));
 	req.command = MGMT_IPC_IMMEDIATE_STOP;
-	rc = do_iscsid(&req, &rsp);
+	rc = iscsid_exec_req(&req, &rsp, 0);
 	if (rc) {
 		iscsid_handle_error(rc);
 		log_error("Could not stop iscsid. Trying sending iscsid "
@@ -220,7 +232,7 @@ static int print_ifaces(struct iface_rec *iface, int info_level)
 	switch (info_level) {
 	case 0:
 	case -1:
-		err = iface_for_each_iface(NULL, &num_found,
+		err = iface_for_each_iface(NULL, 0, &num_found,
 					   iface_print_flat);
 		break;
 	case 1:
@@ -234,7 +246,7 @@ static int print_ifaces(struct iface_rec *iface, int info_level)
 			iface_print_tree(NULL, iface);
 			num_found = 1;
 		} else
-			err = iface_for_each_iface(NULL, &num_found,
+			err = iface_for_each_iface(NULL, 0, &num_found,
 						   iface_print_tree);
 		break;
 	default:
@@ -277,69 +289,6 @@ match_startup_mode(node_rec_t *rec, char *mode)
 	return -1;
 }
 
-struct iscsid_async_req {
-	struct list_head list;
-	void *data;
-	int fd;
-};
-
-static int iscsid_login_reqs_wait(struct list_head *list)
-{
-	struct iscsid_async_req *tmp, *curr;
-	struct node_rec *rec;
-	int ret = 0;
-
-	list_for_each_entry_safe(curr, tmp, list, list) {
-		int err;
-
-		rec = curr->data;
-		err = iscsid_req_wait(MGMT_IPC_SESSION_LOGIN, curr->fd);
-		if (err) {
-			log_error("Could not login to [iface: %s, target: %s, "
-				  "portal: %s,%d]: ", rec->iface.name,
-				  rec->name, rec->conn[0].address,
-				  rec->conn[0].port);
-			iscsid_handle_error(err);
-			ret = err;
-		} else
-			printf("Login to [iface: %s, target: %s, portal: "
-			       "%s,%d]: successful\n", rec->iface.name,
-			       rec->name, rec->conn[0].address,
-			       rec->conn[0].port);
-		list_del(&curr->list);
-		free(curr);
-	}
-	return ret;
-}
-static int iscsid_logout_reqs_wait(struct list_head *list)
-{
-	struct iscsid_async_req *tmp, *curr;
-	struct session_info *info;
-	int ret = 0;
-
-	list_for_each_entry_safe(curr, tmp, list, list) {
-		int err;
-
-		info  = curr->data;
-		err = iscsid_req_wait(MGMT_IPC_SESSION_LOGOUT, curr->fd);
-		if (err) {
-			log_error("Could not logout of [sid: %d, target: %s, "
-				  "portal: %s,%d]: ", info->sid,
-				  info->targetname,
-				  info->persistent_address, info->port);
-			iscsid_handle_error(err);
-			ret = err;
-		} else
-			printf("Logout of [sid: %d, target: %s, "
-			       "portal: %s,%d]: successful\n",
-			       info->sid, info->targetname,
-			       info->persistent_address, info->port);
-		list_del(&curr->list);
-		free(curr);
-	}
-	return ret;
-}
-
 static int
 for_each_session(struct node_rec *rec, iscsi_sysfs_session_op_fn *fn)
 {
@@ -369,91 +318,6 @@ static int link_recs(void *data, struct node_rec *rec)
 	INIT_LIST_HEAD(&rec_copy->list);
 	list_add_tail(&rec_copy->list, list);
 	return 0;
-}
-
-static int __logout_portal(struct session_info *info, struct list_head *list)
-{
-	struct iscsid_async_req *async_req = NULL;
-	int fd, rc;
-
-	/* TODO: add fn to add session prefix info like dev_printk */
-	printf("Logging out of session [sid: %d, target: %s, portal: %s,%d]\n",
-		info->sid, info->targetname, info->persistent_address,
-		info->port);
-
-	async_req = calloc(1, sizeof(*async_req));
-	if (!async_req) {
-		log_error("Could not allocate memory for async logout "
-			  "handling. Using sequential logout instead.");
-		rc = iscsid_req_by_sid(MGMT_IPC_SESSION_LOGOUT, info->sid);
-	} else {
-		INIT_LIST_HEAD(&async_req->list);
-		rc = iscsid_req_by_sid_async(MGMT_IPC_SESSION_LOGOUT,
-					     info->sid, &fd);
-	}
-
-	/* we raced with another app or instance of iscsiadm */
-	switch (rc) {
-	case MGMT_IPC_ERR_NOT_FOUND:
-		rc = 0;
-		break;
-	case MGMT_IPC_OK:
-		if (async_req) {
-			list_add_tail(&async_req->list, list);
-			async_req->fd = fd;
-			async_req->data = info;
-		}
-		return 0;
-	default:
-		iscsid_handle_error(rc);
-		rc = EIO;
-		break;
-	}
-
-	if (async_req)
-		free(async_req);
-	return rc;
-}
-
-static int
-__logout_portals(void *data, int *nr_found,
-		 int (*logout_fn)(void *, struct list_head *,
-				   struct session_info *))
-{
-	struct session_info *curr_info;
-	struct session_link_info link_info;
-	struct list_head session_list, logout_list;
-	int ret = 0, err;
-
-	INIT_LIST_HEAD(&session_list);
-	INIT_LIST_HEAD(&logout_list);
-
-	memset(&link_info, 0, sizeof(link_info));
-	link_info.list = &session_list;
-	link_info.data = NULL;
-	link_info.match_fn = NULL;
-	*nr_found = 0;
-
-	err = iscsi_sysfs_for_each_session(&link_info, nr_found,
-					   session_info_create_list);
-	if (err || !*nr_found)
-		return err;
-
-	*nr_found = 0;
-	list_for_each_entry(curr_info, &session_list, list) {
-		err = logout_fn(data, &logout_list, curr_info);
-		if (err > 0 && !ret)
-			ret = err;
-		if (!err)
-			(*nr_found)++;
-	}
-
-	err = iscsid_logout_reqs_wait(&logout_list);
-	if (err)
-		ret = err;
-
-	session_info_free_list(&session_list);
-	return ret;
 }
 
 static int
@@ -489,7 +353,7 @@ __logout_by_startup(void *data, struct list_head *list,
 		return -1;
 
 	if (!match_startup_mode(&rec, mode))
-		rc = __logout_portal(info, list);
+		rc = iscsi_logout_portal(info, list);
 	return rc;
 }
 
@@ -505,152 +369,7 @@ logout_by_startup(char *mode)
 		return EINVAL;
 	}
 
-	return __logout_portals(mode, &nr_found, __logout_by_startup);
-}
-
-static int
-logout_portal(void *data, struct list_head *list, struct session_info *info)
-{
-	struct node_rec *pattern_rec = data;
-	struct iscsi_transport *t;
-
-	t = iscsi_sysfs_get_transport_by_sid(info->sid);
-	if (!t)
-		return -1;
-
-	if (!iscsi_match_session(pattern_rec, info))
-		return -1;
-
-	/* we do not support this yet */
-	if (t->caps & CAP_FW_DB) {
-		log_error("Could not logout session [sid: %d, "
-			  "target: %s, portal: %s,%d]", info->sid,
-			  info->targetname, info->persistent_address,
-			  info->port);
-		log_error("Logout not supported for driver: %s.", t->name);
-		return -1;
-	}
-	return __logout_portal(info, list);
-}
-
-static int logout_portals(struct node_rec *pattern_rec)
-{
-	int nr_found;
-
-	return __logout_portals(pattern_rec, &nr_found, logout_portal);
-}
-
-static struct node_rec *
-create_node_record(char *targetname, int tpgt, char *ip, int port,
-		   struct iface_rec *iface, int verbose)
-{
-	struct node_rec *rec;
-
-	rec = calloc(1, sizeof(*rec));
-	if (!rec) {
-		log_error("Could not not allocate memory to create node "
-			  "record.");
-		return NULL;
-	}
-
-	idbm_node_setup_defaults(rec);
-	if (targetname)
-		strlcpy(rec->name, targetname, TARGET_NAME_MAXLEN);
-	rec->tpgt = tpgt;
-	rec->conn[0].port = port;
-	if (ip)
-		strlcpy(rec->conn[0].address, ip, NI_MAXHOST);
-	memset(&rec->iface, 0, sizeof(struct iface_rec));
-	if (iface) {
-		iface_copy(&rec->iface, iface);
-		if (strlen(iface->name)) {
-			if (iface_conf_read(&rec->iface)) {
-				if (verbose)
-					log_error("Could not read iface info "
-						  "for %s.", iface->name);
-				goto free_rec;
-			}
-		}
-	}
-	return rec;
-free_rec:
-	free(rec);
-	return NULL;
-}
-
-static int login_portal(void *data, struct list_head *list,
-			struct node_rec *rec)
-{
-	struct iscsid_async_req *async_req = NULL;
-	int rc = 0, fd;
-
-	printf("Logging in to [iface: %s, target: %s, portal: %s,%d]\n",
-		rec->iface.name, rec->name, rec->conn[0].address,
-		rec->conn[0].port);
-
-	if (list) {
-		async_req = calloc(1, sizeof(*async_req));
-		if (!async_req)
-			log_error("Could not allocate memory for async login "
-				  "handling. Using sequential login instead.");
-		else
-			INIT_LIST_HEAD(&async_req->list);
-	}
-
-	if (async_req)
-		rc = iscsid_req_by_rec_async(MGMT_IPC_SESSION_LOGIN,
-					     rec, &fd);
-	else
-		rc = iscsid_req_by_rec(MGMT_IPC_SESSION_LOGIN, rec);
-	/* we raced with another app or instance of iscsiadm */
-	if (rc == MGMT_IPC_ERR_EXISTS) {
-		if (async_req)
-			free(async_req);
-		return 0;
-	} else if (rc) {
-		iscsid_handle_error(rc);
-		if (async_req)
-			free(async_req);
-		return ENOTCONN;
-	}
-
-	if (async_req) {
-		list_add_tail(&async_req->list, list);
-		async_req->fd = fd;
-		async_req->data = rec;
-	}
-	return 0;
-}
-
-static int __login_portals(void *data, int *nr_found,
-			  struct list_head *rec_list,
-			  int (* login_fn)(void *, struct list_head *,
-					  struct node_rec *))
-{
-	struct node_rec *curr_rec, *tmp;
-	struct list_head login_list;
-	int ret = 0, err;
-
-	*nr_found = 0;
-	INIT_LIST_HEAD(&login_list);
-
-	list_for_each_entry(curr_rec, rec_list, list) {
-		err = login_fn(data, &login_list, curr_rec);
-		if (err > 0 && !ret)
-			ret = err;
-		if (!err)
-			(*nr_found)++;
-	}
-
-	err = iscsid_login_reqs_wait(&login_list);
-	if (err && !ret)
-		ret = err;
-
-	list_for_each_entry_safe(curr_rec, tmp, rec_list, list) {
-		list_del(&curr_rec->list);
-		free(curr_rec);
-	}
-	return ret;
+	return iscsi_logout_portals(mode, &nr_found, 1, __logout_by_startup);
 }
 
 /*
@@ -671,7 +390,7 @@ __login_by_startup(void *data, struct list_head *list, struct node_rec *rec)
 	if (match_startup_mode(rec, mode))
 		return -1;
 
-	login_portal(NULL, list, rec);
+	iscsi_login_portal(NULL, list, rec);
 	return 0;
 }
 
@@ -690,8 +409,8 @@ login_by_startup(char *mode)
 
 	INIT_LIST_HEAD(&rec_list);
 	rc = idbm_for_each_rec(&nr_found, &rec_list, link_recs);
-	err = __login_portals(mode, &nr_found, &rec_list,
-			      __login_by_startup);
+	err = iscsi_login_portals(mode, &nr_found, 1, &rec_list,
+				  __login_by_startup);
 	if (err && !rc)
 		rc = err;
 
@@ -702,6 +421,37 @@ login_by_startup(char *mode)
 		rc = ENODEV;
 	}
 	return rc;
+}
+
+/**
+ * iscsi_logout_matched_portal - logout of targets matching the rec info
+ * @data: record to session with
+ * @list: list to add logout rec to
+ * @info: session to match with rec
+ */
+static int iscsi_logout_matched_portal(void *data, struct list_head *list,
+				       struct session_info *info)
+{
+	struct node_rec *pattern_rec = data;
+	struct iscsi_transport *t;
+
+	t = iscsi_sysfs_get_transport_by_sid(info->sid);
+	if (!t)
+		return -1;
+
+	if (!iscsi_match_session(pattern_rec, info))
+		return -1;
+
+	/* we do not support this yet */
+	if (t->caps & CAP_FW_DB) {
+		log_error("Could not logout session of [sid: %d, "
+			  "target: %s, portal: %s,%d].", info->sid,
+			  info->targetname, info->persistent_address,
+			  info->port);
+		log_error("Logout not supported for driver: %s.", t->name);
+		return -1;
+	}
+	return iscsi_logout_portal(info, list);
 }
 
 static int iface_fn(void *data, node_rec_t *rec)
@@ -754,8 +504,8 @@ static int login_portals(struct node_rec *pattern_rec)
 
 	INIT_LIST_HEAD(&rec_list);
 	ret = for_each_rec(pattern_rec, &rec_list, link_recs);
-	err = __login_portals(NULL, &nr_found, &rec_list,
-			      login_portal);
+	err = iscsi_login_portals(NULL, &nr_found, 1, &rec_list,
+				  iscsi_login_portal);
 	if (err && !ret)
 		ret = err;
 	return ret;
@@ -794,7 +544,7 @@ static char *get_config_file(void)
 	memset(&req, 0, sizeof(req));
 	req.command = MGMT_IPC_CONFIG_FILE;
 
-	rc = do_iscsid(&req, &rsp);
+	rc = iscsid_exec_req(&req, &rsp, 1);
 	if (rc)
 		return NULL;
 
@@ -844,7 +594,7 @@ session_stats(void *data, struct session_info *info)
 	req.command = MGMT_IPC_SESSION_STATS;
 	req.u.session.sid = info->sid;
 
-	rc = do_iscsid(&req, &rsp);
+	rc = iscsid_exec_req(&req, &rsp, 1);
 	if (rc)
 		return EIO;
 
@@ -1045,37 +795,9 @@ do_offload_sendtargets(discovery_rec_t *drec, int host_no, int do_login)
 	return discovery_offload_sendtargets(host_no, do_login, drec);
 }
 
-static int login_discovered_portal(void *data, struct list_head *list,
-				   node_rec_t *rec)
-{
-	discovery_rec_t *drec = data;
-
-	if (rec->disc_type != drec->type ||
-	    rec->disc_port != drec->port ||
-	    strcmp(rec->disc_address, drec->address))
-		return -1;
-
-	login_portal(NULL, list, rec);
-	/*
-	 * This is used during the initial setup, so we want to see
-	 * what portals we can or cannot log into and we will just continue
-	 */
-	return 0;
-}
-
-/* TODO merge with initiator.c implementation */
-/* And add locking */
-static int check_for_session_through_iface(struct node_rec *rec)
-{
-	int nr_found = 0;
-	if (iscsi_sysfs_for_each_session(rec, &nr_found, iscsi_match_session))
-		return 1;
-	return 0;
-}
-
 static int delete_node(void *data, struct node_rec *rec)
 {
-	if (check_for_session_through_iface(rec)) {
+	if (iscsi_check_for_running_session(rec)) {
 		/*
  		 * We could log out the session for the user, but if
  		 * the session is being used the user may get something
@@ -1129,7 +851,7 @@ exec_disc_op_on_recs(discovery_rec_t *drec, struct list_head *rec_list,
 		     int info_level, int do_login, int op)
 {
 	int rc = 0, err, found = 0;
-	struct node_rec *new_rec;
+	struct node_rec *new_rec, tmp_rec;
 
 	/* clean up node db */
 	if (op & OP_DELETE)
@@ -1150,12 +872,24 @@ exec_disc_op_on_recs(discovery_rec_t *drec, struct list_head *rec_list,
 		}
 	}
 
-	idbm_print_discovered(drec, info_level);
+	memset(&tmp_rec, 0, sizeof(node_rec_t));
+	list_for_each_entry(new_rec, rec_list, list) {
+		switch (info_level) {
+		case 0:
+		case -1:
+			idbm_print_node_flat(NULL, new_rec);
+			break;
+		case 1:
+			idbm_print_node_and_iface_tree(&tmp_rec, new_rec);
+		}
+
+	}
 
 	if (!do_login)
 		return 0;
 
-	err = __login_portals(drec, &found, rec_list, login_discovered_portal);
+	err = iscsi_login_portals(NULL, &found, 1, rec_list,
+				  iscsi_login_portal);
 	if (err && !rc)
 		rc = err;
 	return rc;
@@ -1163,7 +897,7 @@ exec_disc_op_on_recs(discovery_rec_t *drec, struct list_head *rec_list,
 
 static int
 do_software_sendtargets(discovery_rec_t *drec, struct list_head *ifaces,
-		        int info_level, int do_login, int op)
+		        int info_level, int do_login, int op, int sync_drec)
 {
 	struct list_head rec_list;
 	struct node_rec *rec, *tmp;
@@ -1183,10 +917,12 @@ do_software_sendtargets(discovery_rec_t *drec, struct list_head *ifaces,
 	 * DB lined up, but for now just put all the targets found from
 	 * a discovery portal in one place
 	 */
-	rc = idbm_add_discovery(drec, op & OP_UPDATE);
-	if (rc) {
-		log_error("Could not add new discovery record.");
-		return rc;
+	if ((!(op & OP_NONPERSISTENT)) && sync_drec) {
+		rc = idbm_add_discovery(drec);
+		if (rc) {
+			log_error("Could not add new discovery record.");
+			return rc;
+		}
 	}
 
 	rc = idbm_bind_ifaces_to_nodes(discovery_sendtargets, drec, ifaces,
@@ -1208,7 +944,7 @@ do_software_sendtargets(discovery_rec_t *drec, struct list_head *ifaces,
 
 static int
 do_sendtargets(discovery_rec_t *drec, struct list_head *ifaces,
-	       int info_level, int do_login, int op)
+	       int info_level, int do_login, int op, int sync_drec)
 {
 	struct iface_rec *tmp, *iface;
 	int rc, host_no;
@@ -1264,27 +1000,41 @@ do_sendtargets(discovery_rec_t *drec, struct list_head *ifaces,
 
 sw_st:
 	return do_software_sendtargets(drec, ifaces, info_level, do_login,
-				       op);
+				       op, sync_drec);
 }
 
-static int isns_dev_attr_query(discovery_rec_t *drec,
-			       int info_level)
+static int do_isns(discovery_rec_t *drec, struct list_head *ifaces,
+		   int info_level, int do_login, int op)
 {
-	iscsiadm_req_t req;
-	iscsiadm_rsp_t rsp;
-	int err;
+	struct list_head rec_list;
+	struct node_rec *rec, *tmp;
+	int rc;
 
-	memset(&req, 0, sizeof(iscsiadm_req_t));
-	req.command = MGMT_IPC_ISNS_DEV_ATTR_QUERY;
+	INIT_LIST_HEAD(&rec_list);
+	/*
+	 * compat: if the user did not pass any op then we do all
+	 * ops for them
+	 */
+	if (!op)
+		op = OP_NEW | OP_DELETE | OP_UPDATE;
 
-	err = do_iscsid(&req, &rsp);
-	if (err) {
-		iscsid_handle_error(err);
-		return EIO;
-	} else {
-		idbm_print_discovered(drec, info_level);
-		return 0;
+	drec->type = DISCOVERY_TYPE_ISNS;
+
+	rc = idbm_bind_ifaces_to_nodes(discovery_isns, drec, ifaces,
+				       &rec_list);
+	if (rc) {
+		log_error("Could not perform iSNS discovery.");
+		return rc;
 	}
+
+	rc = exec_disc_op_on_recs(drec, &rec_list, info_level, do_login, op);
+
+	list_for_each_entry_safe(rec, tmp, &rec_list, list) {
+		list_del(&rec->list);
+		free(rec);
+	}
+
+	return rc;
 }
 
 static int
@@ -1329,8 +1079,8 @@ static int exec_iface_op(int op, int do_show, int info_level,
 			return EINVAL;
 		}
 
-		rec = create_node_record(NULL, -1, NULL, -1, iface, 0);
-		if (rec && check_for_session_through_iface(rec)) {
+		rec = idbm_create_rec(NULL, -1, NULL, -1, iface, 0);
+		if (rec && iscsi_check_for_running_session(rec)) {
 			rc = EBUSY;
 			goto new_fail;
 		}
@@ -1351,7 +1101,7 @@ new_fail:
 			return EINVAL;
 		}
 
-		rec = create_node_record(NULL, -1, NULL, -1, iface, 1);
+		rec = idbm_create_rec(NULL, -1, NULL, -1, iface, 1);
 		if (!rec) {
 			rc = EINVAL;
 			goto delete_fail;
@@ -1380,18 +1130,19 @@ delete_fail:
 			break;
 		}
 
-		rec = create_node_record(NULL, -1, NULL, -1, iface, 1);
+		rec = idbm_create_rec(NULL, -1, NULL, -1, iface, 1);
 		if (!rec) {
 			rc = EINVAL;
 			goto update_fail;
 		}
 
-		if (check_for_session_through_iface(rec)) {
-			rc = EINVAL;
-			goto update_fail;
-		}
+		if (iscsi_check_for_running_session(rec))
+			log_warning("Updating iface while iscsi sessions "
+				    "are using it. You must logout the running "
+				    "sessions then log back in for the "
+				    "new settings to take affect.");
 
-		if (!strcmp(name, "iface.iscsi_ifacename")) {
+		if (!strcmp(name, IFACE_ISCSINAME)) {
 			log_error("Can not update "
 				  "iface.iscsi_ifacename. Delete it, "
 				  "and then create a new one.");
@@ -1400,7 +1151,7 @@ delete_fail:
 		}
 
 		if (iface_is_bound_by_hwaddr(&rec->iface) &&
-		    !strcmp(name, "iface.net_ifacename")) {
+		    !strcmp(name, IFACE_NETNAME)) {
 			log_error("Can not update interface binding "
 				  "from hwaddress to net_ifacename. ");
 			log_error("You must delete the interface and "
@@ -1410,7 +1161,7 @@ delete_fail:
 		}
 
 		if (iface_is_bound_by_netdev(&rec->iface) &&
-		    !strcmp(name, "iface.hwaddress")) {
+		    !strcmp(name, IFACE_HWADDR)) {
 			log_error("Can not update interface binding "
 				  "from net_ifacename to hwaddress. ");
 			log_error("You must delete the interface and "
@@ -1427,7 +1178,9 @@ delete_fail:
 			goto update_fail;
 
 		rc = __for_each_rec(0, rec, &set_param, idbm_node_set_param);
-		if (rc && rc != ENODEV)
+		if (rc == ENODEV)
+			rc = 0;
+		else if (rc)
 			goto update_fail;
 
 		printf("%s updated.\n", iface->name);
@@ -1517,7 +1270,10 @@ static int exec_node_op(int op, int do_login, int do_logout,
 	}
 
 	if (do_logout) {
-		if (logout_portals(rec))
+		int nr_found;
+
+		if (iscsi_logout_portals(rec, &nr_found, 1,
+					 iscsi_logout_matched_portal))
 			rc = -1;
 		goto out;
 	}
@@ -1555,7 +1311,7 @@ static int exec_node_op(int op, int do_login, int do_logout,
 		 * and we can mark stable.
 		 */
 		if (!strcmp(name, "iface.transport_name")) {
-			if (check_for_session_through_iface(rec)) {
+			if (iscsi_check_for_running_session(rec)) {
 				log_warning("Cannot modify node/iface "
 					    "transport name while a session "
 					    "is using it. Log out the session "
@@ -1584,59 +1340,29 @@ out:
 	return rc;
 }
 
-struct node_rec *fw_create_rec_by_entry(struct boot_context *context)
+static int exec_fw_disc_op(discovery_rec_t *drec, struct list_head *ifaces,
+			   int info_level, int do_login, int op)
 {
-	struct node_rec *rec;
-
-	/* tpgt hard coded to 1 ??? */
-	rec = create_node_record(context->targetname, 1,
-				 context->target_ipaddr, context->target_port,
-				 NULL, 1);
-	if (!rec) {
-		log_error("Could not setup rec for fw discovery login.");
-		return NULL;
-	}
-
-	/* todo - grab mac and set that here */
-	iface_setup_defaults(&rec->iface);
-	strlcpy(rec->iface.iname, context->initiatorname,
-		sizeof(context->initiatorname));
-	strlcpy(rec->session.auth.username, context->chap_name,
-		sizeof(context->chap_name));
-	strlcpy((char *)rec->session.auth.password, context->chap_password,
-		sizeof(context->chap_password));
-	strlcpy(rec->session.auth.username_in, context->chap_name_in,
-		sizeof(context->chap_name_in));
-	strlcpy((char *)rec->session.auth.password_in,
-		context->chap_password_in,
-		sizeof(context->chap_password_in));
-	rec->session.auth.password_length =
-				strlen((char *)context->chap_password);
-	rec->session.auth.password_in_length =
-				strlen((char *)context->chap_password_in);
-	return rec;
-}
-
-static int exec_fw_op(discovery_rec_t *drec, struct list_head *ifaces,
-		      int info_level, int do_login, int op)
-{
-	struct boot_context *context;
-	struct list_head targets, rec_list;
+	struct list_head targets, rec_list, new_ifaces;
 	struct iface_rec *iface, *tmp_iface;
 	struct node_rec *rec, *tmp_rec;
 	int rc = 0;
 
 	INIT_LIST_HEAD(&targets);
 	INIT_LIST_HEAD(&rec_list);
+	INIT_LIST_HEAD(&new_ifaces);
+	/*
+	 * compat: if the user did not pass any op then we do all
+	 * ops for them
+	 */
+	if (!op)
+		op = OP_NEW | OP_DELETE | OP_UPDATE;
 
-	if (drec) {
-		/*
-		 * compat: if the user did not pass any op then we do all
-		 * ops for them
-		 */
-		if (!op)
-			op = OP_NEW | OP_DELETE | OP_UPDATE;
-
+	/*
+	 * if a user passed in ifaces then we use them and ignore the ibft
+	 * net info
+	 */
+	if (!list_empty(ifaces)) {
 		list_for_each_entry_safe(iface, tmp_iface, ifaces, list) {
 			rc = iface_conf_read(iface);
 			if (rc) {
@@ -1650,21 +1376,70 @@ static int exec_fw_op(discovery_rec_t *drec, struct list_head *ifaces,
 				continue;
 			}
 		}
+		goto discover_fw_tgts;
+	}
 
-		rc = idbm_bind_ifaces_to_nodes(discovery_fw, drec,
-					       ifaces, &rec_list);
-		if (rc)
-			log_error("Could not perform fw discovery.\n");
-		else
-			rc = exec_disc_op_on_recs(drec, &rec_list, info_level,
-						   do_login, op);
-
-		list_for_each_entry_safe(rec, tmp_rec, &rec_list, list) {
-			list_del(&rec->list);
-			free(rec);
-		}
+	/*
+	 * Next, check if we see any offload cards. If we do then
+	 * we make a iface if needed.
+	 *
+	 * Note1: if there is not a offload card we do not setup
+	 * software iscsi binding with the nic used for booting,
+	 * because we do not know if that was intended.
+	 *
+	 * Note2: we assume that the user probably wanted to access
+	 * all targets through all the ifaces instead of being limited
+	 * to what you can export in ibft.
+	 */
+	rc = fw_get_targets(&targets);
+	if (rc) {
+		log_error("Could not get list of targets from firmware. "
+			  "(err %d)\n", rc);
 		return rc;
 	}
+	rc = iface_create_ifaces_from_boot_contexts(&new_ifaces, &targets);
+	if (rc)
+		goto done;
+	if (!list_empty(&new_ifaces))
+		ifaces = &new_ifaces;
+
+discover_fw_tgts:
+	rc = idbm_bind_ifaces_to_nodes(discovery_fw, drec,
+				       ifaces, &rec_list);
+	if (rc)
+		log_error("Could not perform fw discovery.\n");
+	else
+		rc = exec_disc_op_on_recs(drec, &rec_list, info_level,
+					   do_login, op);
+
+done:
+	fw_free_targets(&targets);
+
+	list_for_each_entry_safe(iface, tmp_iface, &new_ifaces, list) {
+		list_del(&iface->list);
+		free(iface);
+	}
+
+	list_for_each_entry_safe(rec, tmp_rec, &rec_list, list) {
+		list_del(&rec->list);
+		free(rec);
+	}
+	return rc;
+}
+
+static int exec_fw_op(discovery_rec_t *drec, struct list_head *ifaces,
+		      int info_level, int do_login, int op)
+{
+	struct boot_context *context;
+	struct list_head targets, rec_list;
+	struct node_rec *rec;
+	int rc = 0;
+
+	INIT_LIST_HEAD(&targets);
+	INIT_LIST_HEAD(&rec_list);
+
+	if (drec)
+		return exec_fw_disc_op(drec, ifaces, info_level, do_login, op);
 
 	/* The following ops do not interact with the DB */
 	rc = fw_get_targets(&targets);
@@ -1676,7 +1451,7 @@ static int exec_fw_op(discovery_rec_t *drec, struct list_head *ifaces,
 
 	if (do_login) {
 		list_for_each_entry(context, &targets, list) {
-			rec = fw_create_rec_by_entry(context);
+			rec = idbm_create_rec_from_boot_context(context);
 			if (!rec) {
 				log_error("Could not convert firmware info to "
 					  "node record.\n");
@@ -1684,7 +1459,7 @@ static int exec_fw_op(discovery_rec_t *drec, struct list_head *ifaces,
 				break;
 			}
 
-			login_portal(NULL, NULL, rec);
+			iscsi_login_portal(NULL, NULL, rec);
 			free(rec);
 		}
 	} else {
@@ -1693,6 +1468,341 @@ static int exec_fw_op(discovery_rec_t *drec, struct list_head *ifaces,
 	}
 
 	fw_free_targets(&targets);
+	return rc;
+}
+
+static void setup_drec_defaults(int type, char *ip, int port,
+				struct discovery_rec *drec)
+{
+	switch (type) {
+	case DISCOVERY_TYPE_ISNS:
+		idbm_isns_defaults(&drec->u.isns);
+		break;
+	case DISCOVERY_TYPE_SENDTARGETS:
+		idbm_sendtargets_defaults(&drec->u.sendtargets);
+		break;
+	default:
+		log_error("Invalid disc type.");
+	}
+	strlcpy(drec->address, ip, sizeof(drec->address));
+	drec->port = port;
+	drec->type = type;
+}
+
+/**
+ * exec_discover - prep, add, read and exec discovery on drec
+ * @type: discovery type
+ * @ip: IP address
+ * @port: port
+ * @ifaces: list of ifaces to bind to
+ * @info_level: print level
+ * @do_login: set to 1 if discovery function should also log into portals found
+ * @do_discover: set to 1 if discovery was requested
+ * @op: ops passed in by user
+ * @drec: discovery rec struct
+ *
+ * This function determines what type of op needs to be executed
+ * and will read and add a drec, and perform discovery if needed.
+ *
+ * returns:
+ * 	-1 - error
+ * 	0 - op/discovery completed
+ * 	1 - exec db op
+ */
+static int exec_discover(int disc_type, char *ip, int port,
+			 struct list_head *ifaces, int info_level,
+			 int do_login, int do_discover, int op,
+			 struct discovery_rec *drec)
+{
+	int rc;
+
+	if (ip == NULL) {
+		log_error("Please specify portal as <ipaddr>[:<ipport>]");
+		return -1;
+	}
+
+	if (op & OP_NEW && !do_discover) {
+		setup_drec_defaults(disc_type, ip, port, drec);
+
+		if (idbm_add_discovery(drec)) {
+			log_error("Could not add new discovery record.");
+			return -1;
+		} else {
+			printf("New discovery record for [%s,%d] added.\n", ip,
+			       port);
+			return 0;
+		}
+	}
+
+	rc = idbm_discovery_read(drec, disc_type, ip, port);
+	if (rc) {
+		if (!do_discover) {
+			log_error("Discovery record [%s,%d] not found.",
+				  ip, port);
+			return -1;
+		}
+
+		/* Just add default rec for user */
+		log_debug(1, "Discovery record [%s,%d] not found!",
+			  ip, port);
+		setup_drec_defaults(disc_type, ip, port, drec);
+		if (!(op & OP_NONPERSISTENT)) {
+			rc = idbm_add_discovery(drec);
+			if (rc) {
+				log_error("Could not add new discovery "
+					  "record.");
+				return -1;
+			}
+		}
+	} else if (!do_discover)
+		return 1;
+
+	rc = 0;
+	switch (disc_type) {
+	case DISCOVERY_TYPE_SENDTARGETS:
+		/*
+		 * idbm_add_discovery call above handles drec syncing so
+		 * we always pass in 0 here.
+		 */
+		rc = do_sendtargets(drec, ifaces, info_level, do_login, op,
+				    0);
+		break;
+	case DISCOVERY_TYPE_ISNS:
+		rc = do_isns(drec, ifaces, info_level, do_login, op);
+		break;
+	default:
+		log_error("Unsupported discovery type.");
+		break;
+	}
+
+	if (rc)
+		return -1;
+	return 0;
+}
+
+static int exec_disc2_op(int disc_type, char *ip, int port,
+			 struct list_head *ifaces, int info_level, int do_login,
+			 int do_discover, int op, char *name, char *value,
+			 int do_show)
+{
+	struct discovery_rec drec;
+	int rc = 0;
+
+	memset(&drec, 0, sizeof(struct discovery_rec));
+	if (disc_type != -1)
+		drec.type = disc_type;
+
+	switch (disc_type) {
+	case DISCOVERY_TYPE_SENDTARGETS:
+		if (port < 0)
+			port = ISCSI_LISTEN_PORT;
+
+		rc = exec_discover(disc_type, ip, port, ifaces, info_level,
+				   do_login, do_discover, op, &drec);
+		if (rc == 1)
+			goto do_db_op;
+		goto done;
+	case DISCOVERY_TYPE_SLP:
+		log_error("SLP discovery is not fully implemented yet.");
+		rc = -1;
+		goto done;
+	case DISCOVERY_TYPE_ISNS:
+		if (port < 0)
+			port = ISNS_DEFAULT_PORT;
+
+		rc = exec_discover(disc_type, ip, port, ifaces, info_level,
+				   do_login, do_discover, op, &drec);
+		if (rc == 1)
+			goto do_db_op;
+		goto done;
+	case DISCOVERY_TYPE_FW:
+		if (!do_discover) {
+			log_error("Invalid command. Possibly missing "
+				  "--discover argument.");
+			rc = -1;
+			goto done;
+		}
+
+		drec.type = DISCOVERY_TYPE_FW;
+		if (exec_fw_op(&drec, ifaces, info_level, do_login, op))
+			rc = -1;
+		goto done;
+	default:
+		rc = -1;
+
+		if (!ip) {
+			 if (op == OP_NOOP || op == OP_SHOW) {
+				if (idbm_print_all_discovery(info_level))
+					/* successfully found some recs */
+					rc = 0;
+			} else
+				log_error("Invalid operation. Operation not "
+					  "supported.");
+		} else if (op)
+			log_error("Invalid command. Possibly missing discovery "
+				  "--type.");
+		else
+			log_error("Invalid command. Portal not needed or "
+				  "Possibly missing discovery --type.");
+		goto done;
+	}
+
+do_db_op:
+	rc = 0;
+
+	if (op == OP_NOOP || op == OP_SHOW) {
+		if (!idbm_print_discovery_info(&drec, do_show)) {
+			log_error("No records found!");
+			rc = -1;
+		}
+	} else if (op == OP_DELETE) {
+		if (idbm_delete_discovery(&drec)) {
+			log_error("Unable to delete record!");
+			rc = -1;
+		}
+	} else if (op == OP_UPDATE) {
+		struct db_set_param set_param;
+
+		if (!name || !value) {
+			log_error("Update requires name and value.");
+			rc = -1;
+			goto done;
+		}
+		set_param.name = name;
+		set_param.value = value;
+		if (idbm_discovery_set_param(&set_param, &drec))
+			rc = -1;
+	} else {
+		log_error("Operation is not supported.");
+		rc = -1;
+		goto done;
+	}
+done:
+	return rc;
+}
+
+static int exec_disc_op(int disc_type, char *ip, int port,
+			struct list_head *ifaces, int info_level, int do_login,
+			int do_discover, int op, char *name, char *value,
+			int do_show)
+{
+	struct discovery_rec drec;
+	int rc = 0;
+
+	memset(&drec, 0, sizeof(struct discovery_rec));
+
+	switch (disc_type) {
+	case DISCOVERY_TYPE_SENDTARGETS:
+		drec.type = DISCOVERY_TYPE_SENDTARGETS;
+
+		if (port < 0)
+			port = ISCSI_LISTEN_PORT;
+
+		if (ip == NULL) {
+			log_error("Please specify portal as "
+				  "<ipaddr>[:<ipport>]");
+			rc = -1;
+			goto done;
+		}
+
+		idbm_sendtargets_defaults(&drec.u.sendtargets);
+		strlcpy(drec.address, ip, sizeof(drec.address));
+		drec.port = port;
+
+		if (do_sendtargets(&drec, ifaces, info_level,
+				   do_login, op, 1)) {
+			rc = -1;
+			goto done;
+		}
+		break;
+	case DISCOVERY_TYPE_SLP:
+		log_error("SLP discovery is not fully implemented yet.");
+		rc = -1;
+		break;
+	case DISCOVERY_TYPE_ISNS:
+		if (!ip) {
+			log_error("Please specify portal as "
+				  "<ipaddr>:[<ipport>]");
+			rc = -1;
+			goto done;
+		}
+
+		strlcpy(drec.address, ip, sizeof(drec.address));
+		if (port < 0)
+			drec.port = ISNS_DEFAULT_PORT;
+		else
+			drec.port = port;
+
+		if (do_isns(&drec, ifaces, info_level, do_login, op)) {
+			rc = -1;
+			goto done;
+		}
+		break;
+	case DISCOVERY_TYPE_FW:
+		drec.type = DISCOVERY_TYPE_FW;
+		if (exec_fw_op(&drec, ifaces, info_level, do_login, op))
+			rc = -1;
+		break;
+	default:
+		if (ip) {
+			/*
+			 * We only have sendtargets disc recs in discovery
+			 * mode, so we can hardcode the port check to the
+			 * iscsi default here.
+			 *
+			 * For isns or slp recs then discovery db mode
+			 * must be used.
+			 */
+			if (port < 0)
+				port = ISCSI_LISTEN_PORT;
+
+			if (idbm_discovery_read(&drec,
+						DISCOVERY_TYPE_SENDTARGETS,
+						ip, port)) {
+				log_error("Discovery record [%s,%d] "
+					  "not found!", ip, port);
+				rc = -1;
+				goto done;
+			}
+			if ((do_discover || do_login) &&
+			    drec.type == DISCOVERY_TYPE_SENDTARGETS) {
+				do_sendtargets(&drec, ifaces, info_level,
+					       do_login, op, 0);
+			} else if (op == OP_NOOP || op == OP_SHOW) {
+				if (!idbm_print_discovery_info(&drec,
+							       do_show)) {
+					log_error("No records found!");
+					rc = -1;
+				}
+			} else if (op == OP_DELETE) {
+				if (idbm_delete_discovery(&drec)) {
+					log_error("Unable to delete record!");
+					rc = -1;
+				}
+			} else if (op == OP_UPDATE || op == OP_NEW) {
+				log_error("Operations new and update for "
+					  "discovery mode is not supported. "
+					  "Use discoverydb mode.");
+				rc = -1;
+				goto done;
+			} else {
+				log_error("Invalid operation.");
+				rc = -1;
+				goto done;
+			}
+		} else if (op == OP_NOOP || op == OP_SHOW) {
+			if (!idbm_print_all_discovery(info_level))
+				rc = -1;
+			goto done;
+		} else {
+			log_error("Invalid operation.");
+			rc = -1;
+			goto done;
+		}
+		/* fall through */
+	}
+
+done:
 	return rc;
 }
 
@@ -1705,15 +1815,14 @@ main(int argc, char **argv)
 	int rc=0, sid=-1, op=OP_NOOP, type=-1, do_logout=0, do_stats=0;
 	int do_login_all=0, do_logout_all=0, info_level=-1, num_ifaces = 0;
 	int tpgt = PORTAL_GROUP_TAG_UNKNOWN, killiscsid=-1, do_show=0;
+	int do_discover = 0;
 	struct sigaction sa_old;
 	struct sigaction sa_new;
-	discovery_rec_t drec;
 	struct list_head ifaces;
 	struct iface_rec *iface = NULL, *tmp;
 	struct node_rec *rec = NULL;
 	uint32_t host_no = -1;
 
-	memset(&drec, 0, sizeof(discovery_rec_t));
 	INIT_LIST_HEAD(&ifaces);
 	/* do not allow ctrl-c for now... */
 	memset(&sa_old, 0, sizeof(struct sigaction));
@@ -1727,8 +1836,7 @@ main(int argc, char **argv)
 	umask(0177);
 
 	/* enable stdout logging */
-	log_daemon = 0;
-	log_init(program_name, 1024);
+	log_init(program_name, 1024, log_do_log_std, NULL);
 	sysfs_init();
 
 	optopt = 0;
@@ -1787,6 +1895,9 @@ main(int argc, char **argv)
 			break;
 		case 'P':
 			info_level = atoi(optarg);
+			break;
+		case 'D':
+			do_discover = 1;
 			break;
 		case 'l':
 			do_login = 1;
@@ -1879,8 +1990,6 @@ main(int argc, char **argv)
 		goto free_ifaces;
 	}
 
-	iface_setup_host_bindings();
-
 	switch (mode) {
 	case MODE_HOST:
 		if ((rc = verify_mode_params(argc, argv, "HdmP", 0))) {
@@ -1893,6 +2002,8 @@ main(int argc, char **argv)
 		rc = host_info_print(info_level, host_no);
 		break;
 	case MODE_IFACE:
+		iface_setup_host_bindings();
+
 		if ((rc = verify_mode_params(argc, argv, "IdnvmPo", 0))) {
 			log_error("iface mode: option '-%c' is not "
 				  "allowed/supported", rc);
@@ -1911,109 +2022,29 @@ main(int argc, char **argv)
 		rc = exec_iface_op(op, do_show, info_level, iface,
 				   name, value);
 		break;
-	case MODE_DISCOVERY:
-		if ((rc = verify_mode_params(argc, argv, "SIPdmtplo", 0))) {
+	case MODE_DISCOVERYDB:
+		if ((rc = verify_mode_params(argc, argv, "DSIPdmntplov", 0))) {
 			log_error("discovery mode: option '-%c' is not "
 				  "allowed/supported", rc);
 			rc = -1;
 			goto out;
 		}
-		switch (type) {
-		case DISCOVERY_TYPE_SENDTARGETS:
-			if (ip == NULL || port < 0) {
-				log_error("please specify right portal as "
-					  "<ipaddr>[:<ipport>]");
-				rc = -1;
-				goto out;
-			}
 
-			idbm_sendtargets_defaults(&drec.u.sendtargets);
-			strlcpy(drec.address, ip, sizeof(drec.address));
-			drec.port = port;
-
-			if (do_sendtargets(&drec, &ifaces, info_level,
-					   do_login, op)) {
-				rc = -1;
-				goto out;
-			}
-			break;
-		case DISCOVERY_TYPE_SLP:
-			log_error("SLP discovery is not fully "
-				  "implemented yet.");
+		rc = exec_disc2_op(type, ip, port, &ifaces, info_level,
+				   do_login, do_discover, op, name, value,
+				   do_show);
+		break;
+	case MODE_DISCOVERY:
+		if ((rc = verify_mode_params(argc, argv, "DSIPdmntplov", 0))) {
+			log_error("discovery mode: option '-%c' is not "
+				  "allowed/supported", rc);
 			rc = -1;
-			break;
-		case DISCOVERY_TYPE_ISNS:
-			drec.type = DISCOVERY_TYPE_ISNS;
-
-			if (isns_dev_attr_query(&drec, info_level))
-				rc = -1;
-			break;
-		case DISCOVERY_TYPE_FW:
-			drec.type = DISCOVERY_TYPE_FW;
-			if (exec_fw_op(&drec, &ifaces, info_level, do_login,
-					op))
-				rc = -1;
-			break;
-		default:
-			if (ip) {
-				if (idbm_discovery_read(&drec, ip, port)) {
-					log_error("discovery record [%s,%d] "
-						  "not found!", ip, port);
-					rc = -1;
-					goto out;
-				}
-				if (do_login &&
-				    drec.type == DISCOVERY_TYPE_SENDTARGETS) {
-					do_sendtargets(&drec, &ifaces,
-							info_level, do_login,
-							op);
-				} else if (do_login &&
-					   drec.type == DISCOVERY_TYPE_SLP) {
-					log_error("SLP discovery is not fully "
-						  "implemented yet.");
-					rc = -1;
-					goto out;
-				} else if (do_login &&
-					   drec.type == DISCOVERY_TYPE_ISNS) {
-					log_error("iSNS discovery is not fully "
-						  "implemented yet.");
-					rc = -1;
-					goto out;
-				} else if (op == OP_NOOP || op == OP_SHOW) {
-					if (!idbm_print_discovery_info(&drec,
-								do_show)) {
-						log_error("no records found!");
-						rc = -1;
-					}
-				} else if (op == OP_DELETE) {
-					if (idbm_delete_discovery(&drec)) {
-						log_error("unable to delete "
-							   "record!");
-						rc = -1;
-					}
-				} else {
-					log_error("operation is not supported.");
-					rc = -1;
-					goto out;
-				}
-
-			} else if (op == OP_NOOP || op == OP_SHOW) {
-				if (!idbm_print_all_discovery(info_level))
-					rc = -1;
-				goto out;
-			} else if (op == OP_DELETE) {
-				log_error("--record required for delete operation");
-				rc = -1;
-				goto out;
-			} else {
-				log_error("Operations: new and "
-					  "update for node is not fully "
-					  "implemented yet.");
-				rc = -1;
-				goto out;
-			}
-			/* fall through */
+			goto out;
 		}
+
+		rc = exec_disc_op(type, ip, port, &ifaces, info_level,
+				  do_login, do_discover, op, name, value,
+				  do_show);
 		break;
 	case MODE_NODE:
 		if ((rc = verify_mode_params(argc, argv, "RsPIdmlSonvupTUL",
@@ -2045,7 +2076,10 @@ main(int argc, char **argv)
 					  iface->hwaddress, iface->ipaddress);
 		}
 
-		rec = create_node_record(targetname, tpgt, ip, port, iface, 1);
+		if (ip && port == -1)
+			port = ISCSI_LISTEN_PORT;
+
+		rec = idbm_create_rec(targetname, tpgt, ip, port, iface, 1);
 		if (!rec) {
 			rc = -1;
 			goto out;
@@ -2099,11 +2133,11 @@ main(int argc, char **argv)
 				goto free_info;
 			}
 
-			rec = create_node_record(info->targetname,
-						 info->tpgt,
-						 info->persistent_address,
-						 info->persistent_port,
-						 &info->iface, 1);
+			rec = idbm_create_rec(info->targetname,
+					      info->tpgt,
+					      info->persistent_address,
+					      info->persistent_port,
+					      &info->iface, 1);
 			if (!rec) {
 				rc = -1;
 				goto free_info;

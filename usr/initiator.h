@@ -143,7 +143,7 @@ typedef struct iscsi_conn {
 	int socket_fd;
 	/* address being used for normal session connection */
 	struct sockaddr_storage saddr;
-	/* address recieved during login */
+	/* address received during login */
 	struct sockaddr_storage failback_saddr;
 	int tcp_window_size;
 	int type_of_service;
@@ -252,6 +252,7 @@ typedef struct iscsi_session {
 	uint32_t replacement_timeout;
 
 	int host_reset_timeout;
+	int tgt_reset_timeout;
 	int lu_reset_timeout;
 	int abort_timeout;
 
@@ -344,11 +345,5 @@ extern mgmt_ipc_err_e iscsi_host_set_param(int host_no, int param, char *value);
 extern void iscsi_async_session_creation(uint32_t host_no, uint32_t sid);
 extern void iscsi_async_session_destruction(uint32_t host_no, uint32_t sid);
 extern void free_initiator(void);
-
-/* isns.c */
-extern int isns_init(void);
-extern void isns_handle(int);
-extern void isns_exit(void);
-extern int isns_dev_attr_query_task(queue_task_t *qtask);
 
 #endif /* INITIATOR_H */

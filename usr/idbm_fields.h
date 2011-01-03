@@ -31,6 +31,7 @@
 #define SESSION_REPLACEMENT_TMO	"node.session.timeo.replacement_timeout"
 #define SESSION_ABORT_TMO	"node.session.err_timeo.abort_timeout"
 #define SESSION_LU_RESET_TMO	"node.session.err_timeo.lu_reset_timeout"
+#define SESSION_TGT_RESET_TMO	"node.session.err_timeo.tgt_reset_timeout"
 #define SESSION_HOST_RESET_TMO	"node.session.err_timeo.host_reset_timeout"
 #define SESSION_FAST_ABORT	"node.session.iscsi.FastAbort"
 #define SESSION_INITIAL_R2T	"node.session.iscsi.InitialR2T"
@@ -54,6 +55,7 @@
 #define CONN_AUTH_TMO		"node.conn[%d].timeo.auth_timeout"
 #define CONN_NOP_INT		"node.conn[%d].timeo.noop_out_interval"
 #define CONN_NOP_TMO		"node.conn[%d].timeo.noop_out_timeout"
+#define CONN_MAX_XMIT_DLEN	"node.conn[%d].iscsi.MaxXmitDataSegmentLength"
 #define CONN_MAX_RECV_DLEN	"node.conn[%d].iscsi.MaxRecvDataSegmentLength"
 #define CONN_HDR_DIGEST		"node.conn[%d].iscsi.HeaderDigest"
 #define CONN_DATA_DIGEST	"node.conn[%d].iscsi.DataDigest"
@@ -90,8 +92,15 @@
 #define DISC_ST_PASSWORD_IN_LEN	"discovery.sendtargets.auth.password_in_length"
 #define DISC_ST_LOGIN_TMO	"discovery.sendtargets.timeo.login_timeout"
 #define DISC_ST_REOPEN_MAX	"discovery.sendtargets.reopen_max"
+#define DISC_ST_DISC_DAEMON_POLL_INVAL	"discovery.sendtargets.discoveryd_poll_inval"
+#define DISC_ST_USE_DISC_DAEMON	"discovery.sendtargets.use_discoveryd"
 #define DISC_ST_AUTH_TMO	"discovery.sendtargets.timeo.auth_timeout"
 #define DISC_ST_ACTIVE_TMO	"discovery.sendtargets.timeo.active_timeout"
 #define DISC_ST_MAX_RECV_DLEN	"discovery.sendtargets.iscsi.MaxRecvDataSegmentLength"
+
+#define DISC_ISNS_DISC_DAEMON_POLL_INVAL	"discovery.isns.discoveryd_poll_inval"
+#define DISC_ISNS_USE_DISC_DAEMON	"discovery.isns.use_discoveryd"
+#define DISC_ISNS_ADDR		"discovery.sendtargets.address"
+#define DISC_ISNS_PORT		"discovery.sendtargets.port"
 
 #endif
