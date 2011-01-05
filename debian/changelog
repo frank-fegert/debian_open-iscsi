@@ -1,4 +1,4 @@
-open-iscsi (2.0.871.3-3) UNRELEASED; urgency=low
+open-iscsi (2.0.871.3-3) experimental; urgency=low
 
   * Install iscsid.conf with 0600 permission as it can contain passwords
     (Closes: #472965)
@@ -11,7 +11,7 @@ open-iscsi (2.0.871.3-3) UNRELEASED; urgency=low
   * cherry pick commit f0b670c0 from upstrem (Closes: #603990)
   * Bump Standards Version (No changes required) 
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Wed, 05 Jan 2011 13:41:56 +0545
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Wed, 05 Jan 2011 13:43:42 +0545
 
 open-iscsi (2.0.871.3-2) unstable; urgency=low
 
