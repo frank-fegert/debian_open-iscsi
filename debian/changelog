@@ -9,8 +9,9 @@ open-iscsi (2.0.871.3-3) UNRELEASED; urgency=low
   * Add patch to support NICs that have native iSCSI support. Thanks to
     Bjoern Metzdorf for the patch. (Closes: #514924) 
   * cherry pick commit f0b670c0 from upstrem (Closes: #603990)
+  * Bump Standards Version (No changes required) 
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Wed, 05 Jan 2011 13:34:39 +0545
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Wed, 05 Jan 2011 13:41:56 +0545
 
 open-iscsi (2.0.871.3-2) unstable; urgency=low
 

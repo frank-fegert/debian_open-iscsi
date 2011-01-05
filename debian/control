@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Debian iSCSI Maintainers <pkg-iscsi-maintainers@lists.alioth.debian.org>
 Uploaders: Andrew Moise <chops@demiurgestudios.com>, Philipp Hug <debian@hug.cx>, Guido Günther <agx@sigxcpu.org>, Ritesh Raj Sarraf <rrs@debian.org>
 Build-Depends: debhelper (>= 7.0.0), bzip2, bison, flex
-Standards-Version: 3.8.4
+Standards-Version: 3.9.1
 Vcs-Git: git://git.debian.org/git/pkg-iscsi/open-iscsi.git
 Vcs-Browser: http://git.debian.org/?p=pkg-iscsi/open-iscsi.git
 Homepage: http://www.open-iscsi.org/
