@@ -1,3 +1,9 @@
+open-iscsi (2.0.871.3-4) experimental; urgency=low
+
+  * Reupload to unstable 
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Thu, 10 Feb 2011 20:08:37 +0530
+
 open-iscsi (2.0.871.3-3) experimental; urgency=low
 
   * Install iscsid.conf with 0600 permission as it can contain passwords
