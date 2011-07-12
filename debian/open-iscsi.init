@@ -102,9 +102,7 @@ start() {
 
 	starttargets
 
-	if [ -d /dev/.udev ] ; then # Only wait for udev when it is active
-		udevadm settle
-	fi
+	udevadm settle || true;
 
 
 	# Handle iSCSI LVM devices
