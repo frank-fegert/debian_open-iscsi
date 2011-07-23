@@ -28,6 +28,17 @@ Description: High performance, transport independent iSCSI implementation
  The userspace component consists of a daemon, iscsid and a management
  utility, iscsiadm
 
+Package: open-iscsi-udeb
+Architecture: any
+Section: debian-installer
+XC-Package-Type: udeb
+Depends: ${shlibs:Depends}, ${misc:Depends}, scsi-modules, libnss-files-udeb
+Description: Configure iSCSI
+ Open-iSCSI is a high-performance, transport independent, multi-platform
+ implementation of RFC3720 iSCSI.
+ .
+ This is the minimal package (udeb) used by debian-installer.
+
 #Package: linux-iscsi-modules-source
 #Architecture: all
 #Depends: ${shlibs:Depends}, ${misc:Depends}, module-assistant, debhelper (>= 4.0.0), bzip2
