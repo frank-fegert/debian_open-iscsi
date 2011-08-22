@@ -22,9 +22,12 @@
 
 #include <netdb.h>
 #include <net/if.h>
+
 #include "types.h"
 #include "auth.h"	/* for the username and password sizes */
 #include "list.h"
+#include "iscsi_proto.h"
+#include "iscsi_net_util.h"
 
 /* ISIDs now have a typed naming authority in them.  We use an OUI */
 #define DRIVER_ISID_0  0x00
@@ -86,6 +89,7 @@ struct iscsi_error_timeout_config {
 	int abort_timeout;
 	int host_reset_timeout;
 	int lu_reset_timeout;
+	int tgt_reset_timeout;
 };
 
 /* all TCP options go in this structure.
@@ -133,9 +137,16 @@ struct iscsi_session_operational_config {
 
 struct iscsi_sendtargets_config {
 	int reopen_max;
+	int use_discoveryd;
+	int discoveryd_poll_inval;
 	struct iscsi_auth_config auth;
 	struct iscsi_connection_timeout_config conn_timeo;
 	struct iscsi_conn_operational_config iscsi;
+};
+
+struct iscsi_isns_config {
+	int use_discoveryd;
+	int discoveryd_poll_inval;
 };
 
 struct iscsi_slp_config {
@@ -154,9 +165,9 @@ typedef enum iscsi_startup {
 
 typedef enum discovery_type {
 	DISCOVERY_TYPE_SENDTARGETS,
+	DISCOVERY_TYPE_ISNS,
 	DISCOVERY_TYPE_OFFLOAD_SENDTARGETS,
 	DISCOVERY_TYPE_SLP,
-	DISCOVERY_TYPE_ISNS,
 	DISCOVERY_TYPE_STATIC,
 	DISCOVERY_TYPE_FW,
 } discovery_type_e;
@@ -196,7 +207,7 @@ typedef struct iface_rec {
 	 * TODO: we may have to make this bigger and interconnect
 	 * specific for infinniband 
 	 */
-	char			hwaddress[ISCSI_MAX_IFACE_LEN];
+	char			hwaddress[ISCSI_HWADDRESS_BUF_SIZE];
 	char			transport_name[ISCSI_TRANSPORT_NAME_MAXLEN];
 	/*
 	 * This is only used for boot now, but the iser guys
@@ -227,6 +238,7 @@ typedef struct discovery_rec {
 	union {
 		struct iscsi_sendtargets_config	sendtargets;
 		struct iscsi_slp_config		slp;
+		struct iscsi_isns_config	isns;
 	} u;
 } discovery_rec_t;
 

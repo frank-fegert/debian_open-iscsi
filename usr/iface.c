@@ -37,6 +37,7 @@
 #include "iface.h"
 #include "session_info.h"
 #include "host.h"
+#include "fw_context.h"
 #include "sysdeps.h"
 
 /*
@@ -413,7 +414,7 @@ int iface_get_by_net_binding(struct iface_rec *pattern,
 	search.pattern = pattern;
 	search.found = out_rec;
 
-	rc = iface_for_each_iface(&search, &num_found,
+	rc = iface_for_each_iface(&search, 0, &num_found,
 				  __iface_get_by_net_binding);
 	if (rc == 1)
 		return 0;
@@ -452,8 +453,8 @@ static int __iface_setup_host_bindings(void *data, struct host_info *hinfo)
 		snprintf(iface.name, sizeof(iface.name), "%s.%s",
 			 t->name, hinfo->iface.hwaddress);
 		if (iface_conf_write(&iface))
-			log_error("Could not write iface conf for %s %s",
-				  iface.name, iface.hwaddress);
+			log_error("Could not create default iface conf %s.",
+				  iface.name);
 			/* fall through - will not be persistent */
 	}
 	return 0;
@@ -665,25 +666,29 @@ int iface_print_flat(void *data, struct iface_rec *iface)
 	return 0;
 }
 
-int iface_for_each_iface(void *data, int *nr_found, iface_op_fn *fn)
+int iface_for_each_iface(void *data, int skip_def, int *nr_found,
+			 iface_op_fn *fn)
 {
 	DIR *iface_dirfd;
 	struct dirent *iface_dent;
 	struct iface_rec *iface, *def_iface;
 	int err = 0, i = 0;
 
-	while ((def_iface = default_ifaces[i++])) {
-		iface = iface_alloc(def_iface->name, &err);
-		if (!iface) {
-			log_error("Could not add iface %s.", def_iface->name);
-			continue;
+	if (!skip_def) {
+		while ((def_iface = default_ifaces[i++])) {
+			iface = iface_alloc(def_iface->name, &err);
+			if (!iface) {
+				log_error("Could not add iface %s.",
+					  def_iface->name);
+				continue;
+			}
+			iface_copy(iface, def_iface);
+			err = fn(data, iface);
+			free(iface);
+			if (err)
+				return err;
+			(*nr_found)++;
 		}
-		iface_copy(iface, def_iface); 
-		err = fn(data, iface);
-		free(iface);
-		if (err)
-			return err;
-		(*nr_found)++;
 	}
 
 	iface_dirfd = opendir(IFACE_CONFIG_DIR);
@@ -759,11 +764,124 @@ static int iface_link(void *data, struct iface_rec *iface)
 	return 0;
 }
 
+/**
+ * iface_link_ifaces - link non default ifaces
+ * @ifaces: list to add ifaces to
+ *
+ * This will return a list of the ifaces created by iscsiadm
+ * or the user. It does not return the static default ones.
+ */
 void iface_link_ifaces(struct list_head *ifaces)
 {
 	int nr_found = 0;
 
-	iface_for_each_iface(ifaces, &nr_found, iface_link);
+	iface_for_each_iface(ifaces, 1, &nr_found, iface_link);
 }
 
+/**
+ * iface_setup_from_boot_context - setup iface from boot context info
+ * @iface: iface t setup
+ * @context: boot context info
+ *
+ * Returns 1 if setup for offload.
+ */
+int iface_setup_from_boot_context(struct iface_rec *iface,
+				   struct boot_context *context)
+{
+	if (strlen(context->initiatorname))
+		strlcpy(iface->iname, context->initiatorname,
+			sizeof(iface->iname));
 
+	if (strlen(context->scsi_host_name)) {
+		struct iscsi_transport *t;
+		uint32_t hostno;
+
+		if (sscanf(context->scsi_host_name, "iscsi_boot%u", &hostno) != 		    1) {
+			log_error("Could not parse %s's host no.",
+				  context->scsi_host_name);
+			return 0;
+		}
+		t = iscsi_sysfs_get_transport_by_hba(hostno);
+		if (!t) {
+			log_error("Could not get transport for %s. "
+				  "Make sure the iSCSI driver is loaded.",
+				  context->scsi_host_name);
+			return 0;
+		}
+
+		log_debug(3, "boot context has %s transport %s",
+			  context->scsi_host_name, t->name);
+		strcpy(iface->transport_name, t->name);
+	} else if (strlen(context->iface) &&
+		 (!net_get_transport_name_from_netdev(context->iface,
+						iface->transport_name))) {
+		log_debug(3, "boot context has netdev %s",
+			  context->iface);
+		strlcpy(iface->netdev, context->iface,
+			sizeof(iface->netdev));
+	} else
+		return 0;
+	/*
+	 * set up for access through a offload card.
+	 */
+	memset(iface->name, 0, sizeof(iface->name));
+	snprintf(iface->name, sizeof(iface->name), "%s.%s",
+		 iface->transport_name, context->mac);
+
+	strlcpy(iface->hwaddress, context->mac,
+		sizeof(iface->hwaddress));
+	strlcpy(iface->ipaddress, context->ipaddr,
+		sizeof(iface->ipaddress));
+	log_debug(1, "iface " iface_fmt "\n", iface_str(iface));
+	return 1;
+}
+
+/**
+ * iface_create_ifaces_from_boot_contexts - create ifaces based on boot info
+ * @ifaces: list to store ifaces in
+ * @targets: list of targets to create ifaces from
+ *
+ * This function will create a iface struct based on the boot info
+ * and it will create (or update if existing already) a iface rec in
+ * the ifaces dir based on the info.
+ */
+int iface_create_ifaces_from_boot_contexts(struct list_head *ifaces,
+					   struct list_head *targets)
+{
+	struct boot_context *context;
+	struct iface_rec *iface, *tmp_iface;
+	int rc = 0;
+
+	list_for_each_entry(context, targets, list) {
+		rc = 0;
+		/* use dummy name. If valid it will get overwritten below */
+		iface = iface_alloc(DEFAULT_IFACENAME, &rc);
+		if (!iface) {
+			log_error("Could not setup iface %s for boot\n",
+				  context->iface);
+			goto fail;
+		}
+		if (!iface_setup_from_boot_context(iface, context)) {
+			/* no offload so forget it */
+			free(iface);
+			continue;
+		}
+
+		rc = iface_conf_write(iface);
+		if (rc) {
+			log_error("Could not setup default iface conf "
+				  "for %s.", iface->name);
+			free(iface);
+			goto fail;
+		}
+		list_add_tail(&iface->list, ifaces);
+	}
+
+	return 0;
+fail:
+	list_for_each_entry_safe(iface, tmp_iface, ifaces, list) {
+		list_del(&iface->list);
+		free(iface);
+	}
+	return rc;
+}

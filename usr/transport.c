@@ -23,7 +23,7 @@
 #include "initiator.h"
 #include "transport.h"
 #include "log.h"
-#include "util.h"
+#include "iscsi_util.h"
 #include "iscsi_sysfs.h"
 #include "cxgb3i.h"
 #include "be2iscsi.h"
@@ -62,7 +62,6 @@ struct iscsi_transport_template bnx2i = {
 
 struct iscsi_transport_template be2iscsi = {
 	.name		= "be2iscsi",
-	.set_host_ip	= 1,
 	.create_conn	= be2iscsi_create_conn,
 	.ep_connect	= ktransport_ep_connect,
 	.ep_poll	= ktransport_ep_poll,
@@ -98,6 +97,6 @@ int set_transport_template(struct iscsi_transport *t)
 		}
 	}
 
-	log_error("Could not fund uspace transport for %s\n", t->name);
+	log_error("Could not find uspace transport for %s\n", t->name);
 	return ENOSYS;
 }
