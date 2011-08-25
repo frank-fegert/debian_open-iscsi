@@ -1,4 +1,3 @@
 disable-isns-security.patch
 iscsi-dont-build-with-ssl.patch
-disable-isns.patch
 004_make-iscsistart-a-dynamic-binary.patch
