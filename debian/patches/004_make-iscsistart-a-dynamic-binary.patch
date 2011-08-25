@@ -7,11 +7,11 @@ Subject: [PATCH 32/43] make iscsistart a dynamic binary
  usr/Makefile |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/usr/Makefile b/usr/Makefile
-index 04f7707..cf3d8f5 100644
---- a/usr/Makefile
-+++ b/usr/Makefile
-@@ -55,7 +55,7 @@ iscsiadm: $(COMMON_SRCS) $(FW_BOOT_SRCS) strings.o discovery.o iscsiadm.o
+Index: open-iscsi/usr/Makefile
+===================================================================
+--- open-iscsi.orig/usr/Makefile	2011-08-25 12:28:04.822735205 +0530
++++ open-iscsi/usr/Makefile	2011-08-25 12:28:05.590746279 +0530
+@@ -60,7 +60,7 @@
  
  iscsistart: $(IPC_OBJ) $(ISCSI_LIB_SRCS) $(INITIATOR_SRCS) $(FW_BOOT_SRCS) \
  		iscsistart.o statics.o
@@ -20,6 +20,3 @@ index 04f7707..cf3d8f5 100644
  clean:
  	rm -f *.o $(PROGRAMS) .depend $(LIBSYS)
  
--- 
-1.7.0
-
