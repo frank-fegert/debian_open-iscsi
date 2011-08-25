@@ -1,0 +1,54 @@
+Don't build isns with openssl
+
+Tmp hack to not use openssl.
+
+diff --git a/utils/open-isns/db-policy.c b/utils/open-isns/db-policy.c
+index 7f09cba..a85a436 100644
+--- a/utils/open-isns/db-policy.c
++++ b/utils/open-isns/db-policy.c
+@@ -7,8 +7,10 @@
+ #include <sys/stat.h>
+ #include <string.h>
+ #include <unistd.h>
++#ifdef WITH_SECURITY
+ #include <openssl/pem.h>
+ #include <openssl/err.h>
++#endif
+ #include "isns.h"
+ #include "security.h"
+ #include "objects.h"
+diff --git a/utils/open-isns/security.h b/utils/open-isns/security.h
+index 9ba0f0d..4b928ff 100644
+--- a/utils/open-isns/security.h
++++ b/utils/open-isns/security.h
+@@ -6,11 +6,16 @@
+ 
+ #ifndef ISNS_SECURITY_H
+ #define ISNS_SECURITY_H
+-
+-#include <openssl/evp.h>
+ #include "buffer.h"
+ #include "util.h"
+ 
++
++#ifdef WITH_SECURITY
++#include <openssl/evp.h>
++#else
++#define EVP_PKEY void
++#endif
++
+ /*
+  * Security context
+  */
+diff --git a/utils/open-isns/util.h b/utils/open-isns/util.h
+index bd6b979..deecb24 100644
+--- a/utils/open-isns/util.h
++++ b/utils/open-isns/util.h
+@@ -9,6 +9,7 @@
+ 
+ #include <sys/types.h>
+ #include <stdint.h>
++#include <stdlib.h>
+ #include <stdio.h>
+ #include <stddef.h>
+ #include <string.h>	// for strdup
