@@ -1,0 +1,53 @@
+commit ab3f6ad7328308d43bdeb3cc761b1048fe0e4805
+Author: Mike Christie <mchristi@redhat.com>
+Date:   Mon Jan 31 20:31:32 2011 -0600
+
+    iscsi tools: disable isns dsa code
+    
+    For discovery we do not use the isns dsa code but
+    still build against libcrypto. This disables the code
+    until we add support.
+
+diff --git a/Makefile b/Makefile
+index db460eb..3bd9e48 100644
+--- a/Makefile
++++ b/Makefile
+@@ -27,7 +27,7 @@ IFACEFILES = etc/iface.example
+ all: user kernel
+ 
+ user: ;
+-       cd utils/open-isns; ./configure; $(MAKE)
++       cd utils/open-isns; ./configure --with-security=no; $(MAKE)
+        $(MAKE) -C utils/sysdeps
+        $(MAKE) -C utils/fwparam_ibft
+        $(MAKE) -C usr
+diff --git a/usr/Makefile b/usr/Makefile
+index e9d6bd1..9de5632 100644
+--- a/usr/Makefile
++++ b/usr/Makefile
+@@ -53,10 +53,10 @@ all: $(PROGRAMS)
+ 
+ iscsid: $(ISCSI_LIB_SRCS) $(IPC_OBJ) $(INITIATOR_SRCS) $(DISCOVERY_SRCS) \
+        iscsid.o session_mgmt.o discoveryd.o
+-       $(CC) $(CFLAGS) $^ -o $@ -L../utils/open-isns -lisns -lcrypto
++       $(CC) $(CFLAGS) $^ -o $@ -L../utils/open-isns -lisns
+ 
+ iscsiadm: $(ISCSI_LIB_SRCS) $(DISCOVERY_SRCS) iscsiadm.o session_mgmt.o
+-       $(CC) $(CFLAGS) $^ -o $@ -L../utils/open-isns -lisns -lcrypto
++       $(CC) $(CFLAGS) $^ -o $@ -L../utils/open-isns -lisns
+ 
+ iscsistart: $(IPC_OBJ) $(ISCSI_LIB_SRCS) $(INITIATOR_SRCS) $(FW_BOOT_SRCS) \
+                iscsistart.o statics.o
+diff --git a/utils/open-isns/Makefile.in b/utils/open-isns/Makefile.in
+index 744fe8b..a27199c 100644
+--- a/utils/open-isns/Makefile.in
++++ b/utils/open-isns/Makefile.in
+@@ -32,7 +32,6 @@ LIBOBJS       = server.o \
+          security.o \
+          authblock.o \
+          policy.o \
+-         pki.o \
+          register.o \
+          query.o \
+          getnext.o \
+
