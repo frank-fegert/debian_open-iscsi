@@ -1,8 +1,19 @@
-open-iscsi (2.0.872-1) unstable; urgency=low
+open-iscsi (2.0.872-1) experimental; urgency=low
 
   * New Upstream Release  
+  * [cccd5a9] Use udevadm to check for existense of udev.
+    Thanks to Marco d'Itri (Closes: #622209)
+  * [ddb81e4] Drop patches, merged upstream
+  * [25aa1d9] disable security and slp support
+  * [89b2a6a] Add patch to disable ssl.
+    Thanks to Mike Christie
+  * [d70e88a] Refresh patch
+  * [b501aec] delete debian/patches/disable-isns.patch
+  * [2cc67f7] spelling-error and hyphentation fixes
+  * [b886116] Bump Standards Version to 3.9.2
+  * [405ecfd] add autotools-dev to build-dep to ensure we have no stale configure scripts
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Mon, 22 Aug 2011 20:17:32 +0530
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Fri, 26 Aug 2011 14:37:49 +0530
 
 open-iscsi (2.0.871.3-6) unstable; urgency=low
 
