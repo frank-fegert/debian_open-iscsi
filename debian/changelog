@@ -11,9 +11,10 @@ open-iscsi (2.0.872-1) experimental; urgency=low
   * [b501aec] delete debian/patches/disable-isns.patch
   * [2cc67f7] spelling-error and hyphentation fixes
   * [b886116] Bump Standards Version to 3.9.2
-  * [405ecfd] add autotools-dev to build-dep to ensure we have no stale configure scripts
+  * [405ecfd] add autotools-dev to build-dep to ensure we have no stale
+    configure scripts
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Fri, 26 Aug 2011 14:37:49 +0530
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Fri, 26 Aug 2011 16:21:38 +0530
 
 open-iscsi (2.0.871.3-6) unstable; urgency=low
 
