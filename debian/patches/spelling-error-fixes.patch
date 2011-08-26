@@ -1,0 +1,52 @@
+Index: open-iscsi/doc/iscsiadm.8
+===================================================================
+--- open-iscsi.orig/doc/iscsiadm.8	2011-08-26 14:16:23.462184864 +0530
++++ open-iscsi/doc/iscsiadm.8	2011-08-26 14:17:58.795100650 +0530
+@@ -2,10 +2,10 @@
+ .SH NAME
+ iscsiadm \- open-iscsi administration utility
+ .SH SYNOPSIS
+-\fBiscsiadm\fR \-m discoverydb [ \-hV ] [ \-d debug_level ] [ \-P printlevel ] [ \-I iface \-t type \-p ip:port [ \-lD ] ] | [ [ -p ip:port -t type ] \
++\fBiscsiadm\fR \-m discoverydb [ \-hV ] [ \-d debug_level ] [ \-P printlevel ] [ \-I iface \-t type \-p ip:port [ \-lD ] ] | [ [ \-p ip:port \-t type ] \
+ [ \-o operation ] [ \-n name ] [ \-v value ] [ \-lD ] ]
+ 
+-\fBiscsiadm\fR \-m discovery [ \-hV ] [ \-d debug_level ] [ \-P printlevel ] [ \-I iface \-t type \-p ip:port [ \-l ] ] | [ [ -p ip:port ] [ \-l | \-D ] ]
++\fBiscsiadm\fR \-m discovery [ \-hV ] [ \-d debug_level ] [ \-P printlevel ] [ \-I iface \-t type \-p ip:port [ \-l ] ] | [ [ \-p ip:port ] [ \-l | \-D ] ]
+ 
+ \fBiscsiadm\fR \-m node [ \-hV ] [ \-d debug_level ] [ \-P printlevel ] [ \-L all,manual,automatic ] [ \-U all,manual,automatic ] [ \-S ] [ [ \-T targetname \-p ip:port \-I iface ] [ \-l | \-u | \-R | \-s] ]
+ [ [ \-o operation ]  [ \-n name ] [ \-v value ] [ \-p ip:port ] ]
+@@ -75,7 +75,7 @@
+ In discovery mode multiple interfaces can be specified by passing in multiple
+ \-I/\-\-interface instances. For example,
+ 
+-"iscsiadm \-m discoverydb \-t st \-p ip:port \-I iface0 \-I iface2 --discover"
++"iscsiadm \-m discoverydb \-t st \-p ip:port \-I iface0 \-I iface2 \-\-discover"
+ 
+ Will direct iscsiadm to setup the node db to create records which will create
+ sessions though the two intefaces passed in.
+Index: open-iscsi/usr/auth.c
+===================================================================
+--- open-iscsi.orig/usr/auth.c	2011-08-26 14:15:10.009486374 +0530
++++ open-iscsi/usr/auth.c	2011-08-26 14:15:21.521595442 +0530
+@@ -2009,7 +2009,7 @@
+ 		"AuthMethod negotiation failed",
+ 		"AuthMethod negotiated to none",
+ 		"CHAP algorithm negotiation failed",
+-		"CHAP challange reflected",
++		"CHAP challenge reflected",
+ 		"Local password same as remote",
+ 		"Local password not set",
+ 		"CHAP identifier bad",
+Index: open-iscsi/usr/netlink.c
+===================================================================
+--- open-iscsi.orig/usr/netlink.c	2011-08-26 14:15:54.745911039 +0530
++++ open-iscsi/usr/netlink.c	2011-08-26 14:16:01.385974268 +0530
+@@ -835,7 +835,7 @@
+ 	ev.u.ep_disconnect.ep_handle = conn->transport_ep_handle;
+ 
+ 	if ((rc = __kipc_call(&ev, sizeof(ev))) < 0) {
+-		log_error("connnection %d:%d transport disconnect failed for "
++		log_error("connection %d:%d transport disconnect failed for "
+ 			  "ep %" PRIu64 " with error %d.", conn->session->id,
+ 			  conn->id, conn->transport_ep_handle, rc);
+ 	} else
