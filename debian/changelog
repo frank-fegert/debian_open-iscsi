@@ -1,3 +1,9 @@
+open-iscsi (2.0.872-2) unstable; urgency=low
+
+  * Upload to unstable 
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Wed, 14 Sep 2011 14:26:00 +0530
+
 open-iscsi (2.0.872-1) experimental; urgency=low
 
   * New Upstream Release  
