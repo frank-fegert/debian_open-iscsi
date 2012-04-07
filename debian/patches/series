@@ -1,2 +1,2 @@
-spelling-error-fixes.patch
-004_make-iscsistart-a-dynamic-binary.patch
+01_spelling-error-fixes.patch
+02_make-iscsistart-a-dynamic-binary.patch
