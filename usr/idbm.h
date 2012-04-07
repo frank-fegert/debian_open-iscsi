@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include "initiator.h"
 #include "config.h"
+#include "list.h"
 
 #define NODE_CONFIG_DIR		ISCSI_CONFIG_ROOT"nodes"
 #define SLP_CONFIG_DIR		ISCSI_CONFIG_ROOT"slp"
@@ -39,6 +40,8 @@
 #define TYPE_INT	0
 #define TYPE_INT_O	1
 #define TYPE_STR	2
+#define TYPE_UINT8	3
+#define TYPE_UINT16	4
 #define MAX_KEYS	256   /* number of keys total(including CNX_MAX) */
 #define NAME_MAXVAL	128   /* the maximum length of key name */
 #define VALUE_MAXVAL	256   /* the maximum length of 223 bytes in the RFC. */
@@ -77,7 +80,9 @@ typedef struct idbm {
 	discovery_rec_t	drec_isns;
 	recinfo_t	dinfo_isns[MAX_KEYS];
 } idbm_t;
-struct db_set_param {
+
+struct user_param {
+	struct list_head list;
 	char *name;
 	char *value;
 };
@@ -93,9 +98,6 @@ struct rec_op_data {
 	node_rec_t *match_rec;
 	idbm_iface_op_fn *fn;
 };
-extern int idbm_for_each_iface(int *found, void *data,
-				idbm_iface_op_fn *fn,
-				char *targetname, int tpgt, char *ip, int port);
 extern int idbm_for_each_portal(int *found, void *data,
 				idbm_portal_op_fn *fn, char *targetname);
 extern int idbm_for_each_node(int *found, void *data,
@@ -140,8 +142,11 @@ extern int idbm_discovery_read(discovery_rec_t *rec, int type, char *addr,
 extern int idbm_rec_read(node_rec_t *out_rec, char *target_name,
 			 int tpgt, char *addr, int port,
 			 struct iface_rec *iface);
+extern int idbm_node_set_rec_from_param(struct list_head *params,
+					node_rec_t *rec, int verify);
 extern int idbm_node_set_param(void *data, node_rec_t *rec);
 extern int idbm_discovery_set_param(void *data, discovery_rec_t *rec);
+struct user_param *idbm_alloc_user_param(char *name, char *value);
 extern void idbm_node_setup_defaults(node_rec_t *rec);
 extern struct node_rec *idbm_find_rec_in_list(struct list_head *rec_list,
 					      char *targetname, char *addr,
@@ -162,6 +167,7 @@ enum {
 	IDBM_PRINT_TYPE_DISCOVERY,
 	IDBM_PRINT_TYPE_NODE,
 	IDBM_PRINT_TYPE_IFACE,
+	IDBM_PRINT_TYPE_HOST_CHAP,
 };
 
 extern void idbm_print(int type, void *rec, int show, FILE *f);
@@ -173,5 +179,7 @@ extern struct node_rec *idbm_create_rec(char *targetname, int tpgt,
 					int verbose);
 extern struct node_rec *
 idbm_create_rec_from_boot_context(struct boot_context *context);
+
+extern int idbm_print_host_chap_info(struct iscsi_chap_rec *chap);
 
 #endif /* IDBM_H */

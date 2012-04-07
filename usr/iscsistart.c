@@ -40,6 +40,7 @@
 #include "log.h"
 #include "iscsi_util.h"
 #include "idbm.h"
+#include "idbm_fields.h"
 #include "version.h"
 #include "iscsi_sysfs.h"
 #include "iscsi_settings.h"
@@ -47,6 +48,8 @@
 #include "iface.h"
 #include "sysdeps.h"
 #include "iscsid_req.h"
+#include "iscsi_err.h"
+#include "iface.h"
 
 /* global config info */
 /* initiator needs initiator name/alias */
@@ -55,12 +58,11 @@ struct iscsi_daemon_config *dconfig = &daemon_config;
 
 static node_rec_t config_rec;
 static LIST_HEAD(targets);
+static LIST_HEAD(user_params);
 
 static char program_name[] = "iscsistart";
-static int mgmt_ipc_fd;
 
 /* used by initiator */
-int control_fd;
 extern struct iscsi_ipc *ipc;
 
 static struct option const long_options[] = {
@@ -77,6 +79,7 @@ static struct option const long_options[] = {
 	{"fwparam_connect", no_argument, NULL, 'b'},
 	{"fwparam_network", no_argument, NULL, 'N'},
 	{"fwparam_print", no_argument, NULL, 'f'},
+	{"param", required_argument, NULL, 'P'},
 	{"help", no_argument, NULL, 'h'},
 	{"version", no_argument, NULL, 'v'},
 	{NULL, 0, NULL, 0},
@@ -104,11 +107,12 @@ Open-iSCSI initiator.\n\
   -b, --fwparam_connect    create a session to the target using iBFT or OF\n\
   -N, --fwparam_network    bring up the network as specified by iBFT or OF\n\
   -f, --fwparam_print      print the iBFT or OF info to STDOUT \n\
+  -P, --param=NAME=VALUE   set parameter with the name NAME to VALUE\n\
   -h, --help               display this help and exit\n\
   -v, --version            display version and exit\n\
 ");
 	}
-	exit(status == 0 ? 0 : -1);
+	exit(status);
 }
 
 static int stop_event_loop(void)
@@ -121,26 +125,107 @@ static int stop_event_loop(void)
 	req.command = MGMT_IPC_IMMEDIATE_STOP;
 	rc = iscsid_exec_req(&req, &rsp, 0);
 	if (rc) {
-		iscsid_handle_error(rc);
+		iscsi_err_print_msg(rc);
 		log_error("Could not stop event_loop\n");
 	}
 	return rc;
 }
 
+static int apply_params(struct node_rec *rec)
+{
+	struct user_param *param;
+	int rc;
+
+	/* Must init this so we can check if user overrode them */
+	rec->session.initial_login_retry_max = -1;
+	rec->conn[0].timeo.noop_out_interval = -1;
+	rec->conn[0].timeo.noop_out_timeout = -1;
+
+	list_for_each_entry(param, &user_params, list) {
+		/*
+		 * user may not have passed in all params that were set by
+		 * ibft/iscsi_boot, so clear out values that might conflict
+		 * with user overrides
+		 */
+		if (!strcmp(param->name, IFACE_NETNAME)) {
+			/* overriding netname so MAC will be for old netdev */
+			memset(rec->iface.hwaddress, 0,
+				sizeof(rec->iface.hwaddress));
+		} else if (!strcmp(param->name, IFACE_HWADDR)) {
+			/* overriding MAC so netdev will be for old MAC */
+			memset(rec->iface.netdev, 0, sizeof(rec->iface.netdev));
+		} else if (!strcmp(param->name, IFACE_TRANSPORTNAME)) {
+			/*
+			 * switching drivers so all old binding info is no
+			 * longer valid. Old values were either for offload
+			 * and we are switching to software or the reverse,
+			 * or switching types of cards (bnx2i to cxgb3i).
+			 */
+			memset(&rec->iface, 0, sizeof(rec->iface));
+			iface_setup_defaults(&rec->iface);
+		}
+	}
+
+	rc = idbm_node_set_rec_from_param(&user_params, rec, 0);
+	if (rc)
+		return rc;
+
+	/*
+	 * For root boot we could not change this in older versions so
+	 * if user did not override then use the defaults.
+	 *
+	 * Increase to account for boot using static setup.
+	 */
+	if (rec->session.initial_login_retry_max == -1)
+		rec->session.initial_login_retry_max = 30;
+	/* we used to not be able to answer so turn off */
+	if (rec->conn[0].timeo.noop_out_interval == -1)
+		rec->conn[0].timeo.noop_out_interval = 0;
+	if (rec->conn[0].timeo.noop_out_timeout == -1)
+		rec->conn[0].timeo.noop_out_timeout = 0;
+
+	return 0;
+}
+
+static int parse_param(char *param_str)
+{
+	struct user_param *param;
+	char *name, *value;
+
+	name = param_str;
+
+	value = strchr(param_str, '=');
+	if (!value) {
+		log_error("Invalid --param %s. Missing value.", param_str);
+		return ISCSI_ERR_INVAL;
+	}
+	*value = '\0';
+
+	value++;
+	if (!strlen(value)) {
+		log_error("Invalid --param %s. Missing value.", param_str);
+		return ISCSI_ERR_INVAL;
+	}
+
+	param = idbm_alloc_user_param(name, value);
+	if (!param) {
+		log_error("Could not allocate memory for param.");
+		return ISCSI_ERR_NOMEM;
+	}
+
+	list_add(&param->list, &user_params);
+	return 0;
+}
 
 static int login_session(struct node_rec *rec)
 {
 	iscsiadm_req_t req;
 	iscsiadm_rsp_t rsp;
 	int rc, retries = 0;
-	/*
-	 * For root boot we cannot change this so increase to account
-	 * for boot using static setup.
-	 */
-	rec->session.initial_login_retry_max = 30;
-	/* we cannot answer so turn off */
-	rec->conn[0].timeo.noop_out_interval = 0;
-	rec->conn[0].timeo.noop_out_timeout = 0;
+
+	rc = apply_params(rec);
+	if (rc)
+		return rc;
 
 	printf("%s: Logging into %s %s:%d,%d\n", program_name, rec->name,
 		rec->conn[0].address, rec->conn[0].port,
@@ -155,12 +240,12 @@ retry:
 	 * handle race where iscsid proc is starting up while we are
 	 * trying to connect.
 	 */
-	if (rc == MGMT_IPC_ERR_ISCSID_NOTCONN && retries < 30) {
+	if (rc == ISCSI_ERR_ISCSID_NOTCONN && retries < 30) {
 		retries++;
 		sleep(1);
 		goto retry;
 	} else if (rc)
-		iscsid_handle_error(rc);
+		iscsi_err_print_msg(rc);
 	return rc;
 }
 
@@ -229,7 +314,7 @@ do {									\
 	if (strlen(str) > max_len) {					\
 		printf("%s: invalid %s %s. Max %s length is %d.\n",	\
 			program_name, param, str, param, max_len);	\
-		exit(1);						\
+		exit(ISCSI_ERR_INVAL);					\
 	}								\
 } while (0);
 
@@ -242,6 +327,7 @@ int main(int argc, char *argv[])
 	struct boot_context *context, boot_context;
 	struct sigaction sa_old;
 	struct sigaction sa_new;
+	int control_fd, mgmt_ipc_fd, err;
 	pid_t pid;
 
 	idbm_node_setup_defaults(&config_rec);
@@ -259,10 +345,8 @@ int main(int argc, char *argv[])
 	log_init(program_name, DEFAULT_AREA_SIZE, log_do_log_std, NULL);
 
 	sysfs_init();
-	if (iscsi_sysfs_check_class_version())
-		exit(1);
 
-	while ((ch = getopt_long(argc, argv, "i:t:g:a:p:d:u:w:U:W:bNfvh",
+	while ((ch = getopt_long(argc, argv, "P:i:t:g:a:p:d:u:w:U:W:bNfvh",
 				 long_options, &longindex)) >= 0) {
 		switch (ch) {
 		case 'i':
@@ -316,25 +400,24 @@ int main(int argc, char *argv[])
 			ret = fw_get_entry(&boot_context);
 			if (ret) {
 				printf("Could not get boot entry.\n");
-				exit(1);
+				exit(ret);
 			}
 
 			initiatorname = boot_context.initiatorname;
 			ret = fw_get_targets(&targets);
 			if (ret || list_empty(&targets)) {
 				printf("Could not setup fw entries.\n");
-				exit(1);
+				exit(ret);
 			}
 			break;
 		case 'N':
-			ret = fw_setup_nics();
-			exit(ret);
+			exit(fw_setup_nics());
 		case 'f':
 			ret = fw_get_targets(&targets);
 			if (ret || list_empty(&targets)) {
 				printf("Could not get list of targets from "
 				       "firmware.\n");
-				exit(1);
+				exit(ret);
 			}
 
 			list_for_each_entry(context, &targets, list)
@@ -342,6 +425,11 @@ int main(int argc, char *argv[])
 
 			fw_free_targets(&targets);
 			exit(0);
+		case 'P':
+			err = parse_param(optarg);
+			if (err)
+				exit(err);
+			break;
 		case 'v':
 			printf("%s version %s\n", program_name,
 				ISCSI_VERSION_STR);
@@ -350,18 +438,18 @@ int main(int argc, char *argv[])
 			usage(0);
 			break;
 		default:
-			usage(1);
+			usage(ISCSI_ERR_INVAL);
 			break;
 		}
 	}
 
 	if (list_empty(&targets) && check_params(initiatorname))
-		exit(1);
+		exit(ISCSI_ERR_INVAL);
 
 	pid = fork();
 	if (pid < 0) {
 		log_error("iscsiboot fork failed");
-		exit(1);
+		exit(ISCSI_ERR_NOMEM);
 	} else if (pid) {
 		int status, rc, rc2;
 
@@ -376,7 +464,7 @@ int main(int argc, char *argv[])
 
 		waitpid(pid, &status, WUNTRACED);
 		if (rc || rc2)
-			exit(-1);
+			exit(ISCSI_ERR);
 
 		log_debug(1, "iscsi parent done");
 		exit(0);
@@ -385,12 +473,12 @@ int main(int argc, char *argv[])
 	mgmt_ipc_fd = mgmt_ipc_listen();
 	if (mgmt_ipc_fd  < 0) {
 		log_error("Could not setup mgmt ipc\n");
-		exit(-1);
+		exit(ISCSI_ERR_NOMEM);
 	}
 
 	control_fd = ipc->ctldev_open();
 	if (control_fd < 0)
-		exit(-1);
+		exit(ISCSI_ERR_NOMEM);
 
 	memset(&daemon_config, 0, sizeof (daemon_config));
 	daemon_config.initiator_name = initiatorname;
@@ -420,6 +508,7 @@ int main(int argc, char *argv[])
 	/*
 	 * Start Main Event Loop
 	 */
+	iscsi_initiator_init();
 	actor_init();
 	event_loop(ipc, control_fd, mgmt_ipc_fd);
 	ipc->ctldev_close();

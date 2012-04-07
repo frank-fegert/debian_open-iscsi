@@ -1,8 +1,8 @@
 /*
- * iSCSI Initiator Daemon
+ * cxgb3i/cxgb4i helpers
  *
- * Copyright (C) 2004 Dmitry Yusupov, Alex Aizman
- * maintained by open-iscsi@@googlegroups.com
+ * Copyright (C) 2006 Mike Christie
+ * Copyright (C) 2006 Red Hat, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -13,23 +13,12 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- *
- * See the file COPYING included with this distribution for more details.
  */
+#include "initiator.h"
 
-#ifndef ISCSID_H
-#define ISCSID_H
-
-/* IPC API */
-extern struct iscsi_ipc *ipc;
-
-/* iscsid.c: daemon config */
-struct iscsi_daemon_config {
-	char *config_file;
-	char *pid_file;
-	char *initiator_name;
-	char *initiator_alias;
-};
-extern struct iscsi_daemon_config *dconfig;
-
-#endif	/* ISCSID_H */
+void cxgbi_create_conn(struct iscsi_conn *conn)
+{
+	/* card can handle up to 15360 bytes */
+	if (conn->max_recv_dlength > 8192)
+		conn->max_recv_dlength = 8192;
+}

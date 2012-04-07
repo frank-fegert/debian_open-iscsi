@@ -562,7 +562,7 @@ void
 isns_net_stream_accept(isns_socket_t *sock)
 {
 	isns_socket_t *child;
-	size_t	optlen;
+	socklen_t optlen;
 	int	fd, passcred = 0;
 
 	fd = accept(sock->is_desc, NULL, NULL);
@@ -805,7 +805,7 @@ isns_net_stream_xmit(isns_socket_t *sock)
 void
 isns_net_stream_hup(isns_socket_t *sock)
 {
-	sock->is_poll_mask &= ~POLLIN;
+	sock->is_poll_mask &= ~(POLLIN|POLLOUT);
 	/* POLLHUP while connecting means we failed */
 	if (sock->is_state == ISNS_SOCK_CONNECTING)
 		isns_net_stream_error(sock, ECONNREFUSED);

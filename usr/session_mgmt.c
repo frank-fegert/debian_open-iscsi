@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2010 Mike Christie
  * Copyright (C) 2010 Red Hat, Inc. All rights reserved.
-
+ * Copyright (C) 2011 Dell Inc.
  * maintained by open-iscsi@googlegroups.com
  *
  * This program is free software; you can redistribute it and/or modify
@@ -32,6 +32,7 @@
 #include "iscsi_sysfs.h"
 #include "log.h"
 #include "iscsid_req.h"
+#include "iscsi_err.h"
 
 static void log_login_msg(struct node_rec *rec, int rc)
 {
@@ -40,7 +41,7 @@ static void log_login_msg(struct node_rec *rec, int rc)
 			  "portal: %s,%d].", rec->iface.name,
 			  rec->name, rec->conn[0].address,
 			  rec->conn[0].port);
-		iscsid_handle_error(rc);
+		iscsi_err_print_msg(rc);
 	} else
 		log_info("Login to [iface: %s, target: %s, portal: "
 			 "%s,%d] successful.", rec->iface.name,
@@ -82,6 +83,8 @@ static int iscsid_login_reqs_wait(struct list_head *list)
 
 		rec = curr->data;
 		err = iscsid_req_wait(MGMT_IPC_SESSION_LOGIN, curr->fd);
+		if (err && !ret)
+			ret = err;
 		log_login_msg(rec, err);
 		list_del(&curr->list);
 		free(curr);
@@ -90,19 +93,27 @@ static int iscsid_login_reqs_wait(struct list_head *list)
 }
 
 /**
- * iscsi_login_portal - request iscsid to login to portal
- * @data: Unused. Only needed so this can be used in iscsi_login_portals
+ * __iscsi_login_portal - request iscsid to login to portal
+ * @data: If set, copies the session.multiple value to the portal record
+ *        so it is propagated to iscsid.
  * @list: If async, list to add session to
  * @rec: portal rec to log into
  */
-int iscsi_login_portal(void *data, struct list_head *list, struct node_rec *rec)
+static int
+__iscsi_login_portal(void *data, struct list_head *list, struct node_rec *rec)
 {
 	struct iscsid_async_req *async_req = NULL;
 	int rc = 0, fd;
 
-	log_info("Logging in to [iface: %s, target: %s, portal: %s,%d]",
+	if (data && !rec->session.multiple) {
+		struct node_rec *pattern_rec = data;
+		rec->session.multiple = pattern_rec->session.multiple;
+	}
+
+	log_info("Logging in to [iface: %s, target: %s, portal: %s,%d]%s",
 		 rec->iface.name, rec->name, rec->conn[0].address,
-		 rec->conn[0].port);
+		 rec->conn[0].port,
+		 (rec->session.multiple ? " (multiple)" : ""));
 
 	if (list) {
 		async_req = calloc(1, sizeof(*async_req));
@@ -123,11 +134,7 @@ int iscsi_login_portal(void *data, struct list_head *list, struct node_rec *rec)
 		log_login_msg(rec, rc);
 		if (async_req)
 			free(async_req);
-		/* we raced with another app or instance of iscsiadm */
-		if (rc == MGMT_IPC_ERR_EXISTS)
-			return 0;
-
-		return ENOTCONN;
+		return rc;
 	}
 
 	if (async_req) {
@@ -138,6 +145,63 @@ int iscsi_login_portal(void *data, struct list_head *list, struct node_rec *rec)
 		log_login_msg(rec, rc);
 
 	return 0;
+}
+
+/**
+ * iscsi_login_portal - request iscsid to login to portal multiple
+ * times, based on the session.nr_sessions in the portal record.
+ * @data: If set, session.multiple will cause an additional session to
+ *        be created regardless of the value of session.nr_sessions
+ * @list: If async, list to add session to
+ * @rec: portal rec to log into
+ */
+int iscsi_login_portal(void *data, struct list_head *list, struct node_rec *rec)
+{
+	struct node_rec *pattern_rec = data;
+	int rc = 0, session_count = 0, i;
+
+	/*
+	 * If pattern_rec->session.multiple is set, just add a single new
+	 * session by passing things along to __iscsi_login_portal
+	 */
+	if (pattern_rec && pattern_rec->session.multiple)
+		return __iscsi_login_portal(data, list, rec);
+
+	/*
+	 * Count the current number of sessions, and only create those
+	 * that are missing.
+	 */
+	rc = iscsi_sysfs_for_each_session(rec, &session_count,
+					  iscsi_match_session_count);
+	if (rc) {
+		log_error("Could not count current number of sessions");
+		goto done;
+	}
+	if (session_count >= rec->session.nr_sessions) {
+		log_debug(1, "%s: %d session%s requested, but %d "
+			  "already present.",
+			  rec->iface.name, rec->session.nr_sessions,
+			  rec->session.nr_sessions == 1 ? "" : "s",
+			  session_count);
+		rc = 0;
+		goto done;
+	}
+
+	/*
+	 * Ensure the record's 'multiple' flag is set so __iscsi_login_portal
+	 * will allow multiple logins.
+	 */
+	rec->session.multiple = 1;
+	for (i = session_count; i < rec->session.nr_sessions; ++i) {
+		log_debug(1, "%s: Creating session %d/%d", rec->iface.name,
+			  i + 1, rec->session.nr_sessions);
+		int err = __iscsi_login_portal(pattern_rec, list, rec);
+		if (err && !rc)
+			rc = err;
+	}
+
+done:
+	return rc;
 }
 
 /**
@@ -152,7 +216,6 @@ int iscsi_login_portal_nowait(struct node_rec *rec)
 	int err;
 
 	INIT_LIST_HEAD(&list);
-
 	err = iscsi_login_portal(NULL, &list, rec);
 	if (err > 0)
 		return err;
@@ -161,20 +224,22 @@ int iscsi_login_portal_nowait(struct node_rec *rec)
 }
 
 /**
- * iscsi_login_portals - login into portals on @rec_list,
+ * __iscsi_login_portals - login into portals on @rec_list,
  * @data: data to pass to login_fn
  * @nr_found: returned with number of portals logged into
  * @wait: bool indicating if the fn should wait for the result
  * @rec_list: list of portals to log into
+ * @clear_list: If set, delete and free rec_list after iterating through.
  * @login_fn: list iter function
  *
  * This will loop over the list of portals and login. It
  * will attempt to login asynchronously, and then wait for
  * them to complete if wait is set.
  */
-int iscsi_login_portals(void *data, int *nr_found, int wait,
-			struct list_head *rec_list,
-			int (* login_fn)(void *, struct list_head *,
+static
+int __iscsi_login_portals(void *data, int *nr_found, int wait,
+			struct list_head *rec_list, int clear_list,
+			int (*login_fn)(void *, struct list_head *,
 					 struct node_rec *))
 {
 	struct node_rec *curr_rec, *tmp;
@@ -191,7 +256,6 @@ int iscsi_login_portals(void *data, int *nr_found, int wait,
 		if (!err)
 			(*nr_found)++;
 	}
-
 	if (wait) {
 		err = iscsid_login_reqs_wait(&login_list);
 		if (err && !ret)
@@ -199,11 +263,48 @@ int iscsi_login_portals(void *data, int *nr_found, int wait,
 	} else
 		iscsid_reqs_close(&login_list);
 
-	list_for_each_entry_safe(curr_rec, tmp, rec_list, list) {
-		list_del(&curr_rec->list);
-		free(curr_rec);
+	if (clear_list) {
+		list_for_each_entry_safe(curr_rec, tmp, rec_list, list) {
+			list_del(&curr_rec->list);
+			free(curr_rec);
+		}
 	}
 	return ret;
+}
+
+/**
+ * iscsi_login_portals - login into portals on @rec_list,
+ * @data: data to pass to login_fn
+ * @nr_found: returned with number of portals logged into
+ * @wait: bool indicating if the fn should wait for the result
+ * @rec_list: list of portals to log into.  This list is deleted after
+ *            iterating through it.
+ * @login_fn: list iter function
+ *
+ * This will loop over the list of portals and login. It
+ * will attempt to login asynchronously, and then wait for
+ * them to complete if wait is set.
+ */
+int iscsi_login_portals(void *data, int *nr_found, int wait,
+			struct list_head *rec_list,
+			int (*login_fn)(void *, struct list_head *,
+					 struct node_rec *))
+{
+	return __iscsi_login_portals(data, nr_found, wait, rec_list,
+				     1, login_fn);
+}
+
+/**
+ * iscsi_login_portals_safe - login into portals on @rec_list, but do not
+ *			      clear out rec_list.
+ */
+int iscsi_login_portals_safe(void *data, int *nr_found, int wait,
+			struct list_head *rec_list,
+			int (*login_fn)(void *, struct list_head *,
+					 struct node_rec *))
+{
+	return __iscsi_login_portals(data, nr_found, wait, rec_list,
+				     0, login_fn);
 }
 
 static void log_logout_msg(struct session_info *info, int rc)
@@ -213,7 +314,7 @@ static void log_logout_msg(struct session_info *info, int rc)
 			  "portal: %s,%d].", info->sid,
 			  info->targetname,
 			  info->persistent_address, info->port);
-		iscsid_handle_error(rc);
+		iscsi_err_print_msg(rc);
 	} else
 		log_info("Logout of [sid: %d, target: %s, "
 			 "portal: %s,%d] successful.",
@@ -277,11 +378,7 @@ int iscsi_logout_portal(struct session_info *info, struct list_head *list)
 		log_logout_msg(info, rc);
 		if (async_req)
 			free(async_req);
-
-		if (rc == MGMT_IPC_ERR_NOT_FOUND)
-			return 0;
-
-		return EIO;
+		return rc;
 	}
 
 	if (async_req) {
@@ -325,10 +422,17 @@ int iscsi_logout_portals(void *data, int *nr_found, int wait,
 
 	err = iscsi_sysfs_for_each_session(&link_info, nr_found,
 					   session_info_create_list);
-	if (err || !*nr_found)
+	if (err && !list_empty(&session_list))
+		log_error("Could not read in all sessions: %s",
+			  iscsi_err_to_str(err));
+	else if (err && list_empty(&session_list)) {
+		log_error("Could not read session info.");
 		return err;
-
+	} else if (list_empty(&session_list))
+		return ISCSI_ERR_NO_OBJS_FOUND;
+	ret = err;
 	*nr_found = 0;
+
 	list_for_each_entry(curr_info, &session_list, list) {
 		err = logout_fn(data, &logout_list, curr_info);
 		if (err > 0 && !ret)
@@ -337,13 +441,22 @@ int iscsi_logout_portals(void *data, int *nr_found, int wait,
 			(*nr_found)++;
 	}
 
+	if (!*nr_found) {
+		ret = ISCSI_ERR_NO_OBJS_FOUND;
+		goto free_list;
+	}
+
 	if (wait) {
 		err = iscsid_logout_reqs_wait(&logout_list);
-		if (err)
+		if (err && !ret)
 			ret = err;
 	} else
 		iscsid_reqs_close(&logout_list);
 
+	if (ret)
+		log_error("Could not logout of all requested sessions");
+
+free_list:
 	session_info_free_list(&session_list);
 	return ret;
 }
