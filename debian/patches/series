@@ -1,4 +1,2 @@
 spelling-error-fixes.patch
-disable-isns-security.patch
-iscsi-dont-build-with-ssl.patch
 004_make-iscsistart-a-dynamic-binary.patch
