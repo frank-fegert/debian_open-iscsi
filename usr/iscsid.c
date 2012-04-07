@@ -31,6 +31,8 @@
 #include <sys/utsname.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "iscsid.h"
 #include "mgmt_ipc.h"
@@ -48,16 +50,17 @@
 #include "sysdeps.h"
 #include "discoveryd.h"
 #include "iscsid_req.h"
+#include "iscsi_err.h"
 
 /* global config info */
 struct iscsi_daemon_config daemon_config;
 struct iscsi_daemon_config *dconfig = &daemon_config;
 
 static char program_name[] = "iscsid";
-int control_fd, mgmt_ipc_fd;
 static pid_t log_pid;
 static gid_t gid;
 static int daemonize = 1;
+static int mgmt_ipc_fd;
 
 static struct option const long_options[] = {
 	{"config", required_argument, NULL, 'c'},
@@ -66,6 +69,7 @@ static struct option const long_options[] = {
 	{"debug", required_argument, NULL, 'd'},
 	{"uid", required_argument, NULL, 'u'},
 	{"gid", required_argument, NULL, 'g'},
+	{"no-pid-file", no_argument, NULL, 'n'},
 	{"pid", required_argument, NULL, 'p'},
 	{"help", no_argument, NULL, 'h'},
 	{"version", no_argument, NULL, 'v'},
@@ -87,12 +91,13 @@ Open-iSCSI initiator daemon.\n\
   -d, --debug debuglevel  print debugging information\n\
   -u, --uid=uid           run as uid, default is current user\n\
   -g, --gid=gid           run as gid, default is current user group\n\
+  -n, --no-pid-file       do not use a pid file\n\
   -p, --pid=pidfile       use pid file (default " PID_FILE ").\n\
   -h, --help              display this help and exit\n\
   -v, --version           display version and exit\n\
 ");
 	}
-	exit(status == 0 ? 0 : -1);
+	exit(status);
 }
 
 static void
@@ -196,11 +201,6 @@ static int sync_session(void *data, struct session_info *info)
 	t = iscsi_sysfs_get_transport_by_sid(info->sid);
 	if (!t)
 		return 0;
-	if (set_transport_template(t)) {
-		log_error("Could not find userspace transport template for %s",
-			   t->name);
-		return 0;
-	}
 
 	/*
 	 * Just rescan the device in case this is the first startup.
@@ -213,12 +213,16 @@ static int sync_session(void *data, struct session_info *info)
 		host_no = iscsi_sysfs_get_host_no_from_sid(info->sid, &err);
 		if (err) {
 			log_error("Could not get host no from sid %u. Can not "
-				  "sync session. Error %d", info->sid, err);
+				  "sync session: %s", info->sid,
+				  iscsi_err_to_str(err));
 			return 0;
 		}
 		iscsi_sysfs_scan_host(host_no, 0);
 		return 0;
 	}
+
+	if (!iscsi_sysfs_session_user_created(info->sid))
+		return 0;
 
 	memset(&rec, 0, sizeof(node_rec_t));
 	/*
@@ -272,7 +276,7 @@ static int sync_session(void *data, struct session_info *info)
 
 retry:
 	rc = iscsid_exec_req(&req, &rsp, 0);
-	if (rc == MGMT_IPC_ERR_ISCSID_NOTCONN && retries < 30) {
+	if (rc == ISCSI_ERR_ISCSID_NOTCONN && retries < 30) {
 		retries++;
 		sleep(1);
 		goto retry;
@@ -302,7 +306,12 @@ static void iscsid_shutdown(void)
 
 static void catch_signal(int signo)
 {
-	log_debug(1, "%d caught signal -%d...", signo, getpid());
+	log_debug(1, "pid %d caught signal %d", getpid(), signo);
+
+	/* In foreground mode, treat SIGINT like SIGTERM */
+	if (!daemonize && signo == SIGINT)
+		signo = SIGTERM;
+
 	switch (signo) {
 	case SIGTERM:
 		iscsid_shutdown();
@@ -318,7 +327,7 @@ static void missing_iname_warn(char *initiatorname_file)
 	log_error("Warning: InitiatorName file %s does not exist or does not "
 		  "contain a properly formated InitiatorName. If using "
 		  "software iscsi (iscsi_tcp or ib_iser) or partial offload "
-		  "(bnx2i or cxgb3i iscsi), you may not be able to log "
+		  "(bnx2i or cxgbi iscsi), you may not be able to log "
 		  "into or discover targets. Please create a file %s that "
 		  "contains a sting with the format: InitiatorName="
 		  "iqn.yyyy-mm.<reversed domain name>[:identifier].\n\n"
@@ -337,17 +346,10 @@ int main(int argc, char *argv[])
 	uid_t uid = 0;
 	struct sigaction sa_old;
 	struct sigaction sa_new;
+	int control_fd;
 	pid_t pid;
 
-	/* do not allow ctrl-c for now... */
-	sa_new.sa_handler = catch_signal;
-	sigemptyset(&sa_new.sa_mask);
-	sa_new.sa_flags = 0;
-	sigaction(SIGINT, &sa_new, &sa_old );
-	sigaction(SIGPIPE, &sa_new, &sa_old );
-	sigaction(SIGTERM, &sa_new, &sa_old );
-
-	while ((ch = getopt_long(argc, argv, "c:i:fd:u:g:p:vh", long_options,
+	while ((ch = getopt_long(argc, argv, "c:i:fd:nu:g:p:vh", long_options,
 				 &longindex)) >= 0) {
 		switch (ch) {
 		case 'c':
@@ -367,6 +369,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'g':
 			gid = strtoul(optarg, NULL, 10);
+			break;
+		case 'n':
+			pid_file = NULL;
 			break;
 		case 'p':
 			pid_file = optarg;
@@ -388,17 +393,20 @@ int main(int argc, char *argv[])
 	log_pid = log_init(program_name, DEFAULT_AREA_SIZE,
 		      daemonize ? log_do_log_daemon : log_do_log_std, NULL);
 	if (log_pid < 0)
-		exit(1);
+		exit(ISCSI_ERR);
+
+	/* do not allow ctrl-c for now... */
+	sa_new.sa_handler = catch_signal;
+	sigemptyset(&sa_new.sa_mask);
+	sa_new.sa_flags = 0;
+	sigaction(SIGINT, &sa_new, &sa_old );
+	sigaction(SIGPIPE, &sa_new, &sa_old );
+	sigaction(SIGTERM, &sa_new, &sa_old );
 
 	sysfs_init();
 	if (idbm_init(iscsid_get_config_file)) {
 		log_close(log_pid);
-		exit(1);
-	}
-
-	if (iscsi_sysfs_check_class_version()) {
-		log_close(log_pid);
-		exit(1);
+		exit(ISCSI_ERR);
 	}
 
 	umask(0177);
@@ -410,24 +418,26 @@ int main(int argc, char *argv[])
 
 	if ((mgmt_ipc_fd = mgmt_ipc_listen()) < 0) {
 		log_close(log_pid);
-		exit(1);
+		exit(ISCSI_ERR);
 	}
 
 	if (daemonize) {
 		char buf[64];
-		int fd;
+		int fd = -1;
 
-		fd = open(pid_file, O_WRONLY|O_CREAT, 0644);
-		if (fd < 0) {
-			log_error("Unable to create pid file");
-			log_close(log_pid);
-			exit(1);
+		if (pid_file) {
+			fd = open(pid_file, O_WRONLY|O_CREAT, 0644);
+			if (fd < 0) {
+				log_error("Unable to create pid file");
+				log_close(log_pid);
+				exit(ISCSI_ERR);
+			}
 		}
 		pid = fork();
 		if (pid < 0) {
 			log_error("Starting daemon failed");
 			log_close(log_pid);
-			exit(1);
+			exit(ISCSI_ERR);
 		} else if (pid) {
 			log_error("iSCSI daemon with pid=%d started!", pid);
 			exit(0);
@@ -435,18 +445,29 @@ int main(int argc, char *argv[])
 
 		if ((control_fd = ipc->ctldev_open()) < 0) {
 			log_close(log_pid);
-			exit(1);
+			exit(ISCSI_ERR);
 		}
 
-		chdir("/");
-		if (lockf(fd, F_TLOCK, 0) < 0) {
-			log_error("Unable to lock pid file");
-			log_close(log_pid);
-			exit(1);
+		if (chdir("/") < 0)
+			log_debug(1, "Unable to chdir to /");
+		if (fd > 0) {
+			if (lockf(fd, F_TLOCK, 0) < 0) {
+				log_error("Unable to lock pid file");
+				log_close(log_pid);
+				exit(ISCSI_ERR);
+			}
+			if (ftruncate(fd, 0) < 0) {
+				log_error("Unable to truncate pid file");
+				log_close(log_pid);
+				exit(ISCSI_ERR);
+			}
+			sprintf(buf, "%d\n", getpid());
+			if (write(fd, buf, strlen(buf)) < 0) {
+				log_error("Unable to write pid file");
+				log_close(log_pid);
+				exit(ISCSI_ERR);
+			}
 		}
-		ftruncate(fd, 0);
-		sprintf(buf, "%d\n", getpid());
-		write(fd, buf, strlen(buf));
 
 		daemon_init();
 	} else {
@@ -498,6 +519,7 @@ int main(int argc, char *argv[])
 	} else
 		reap_inc();
 
+	iscsi_initiator_init();
 	increase_max_files();
 	discoveryd_start(daemon_config.initiator_name);
 
@@ -509,7 +531,7 @@ int main(int argc, char *argv[])
 	if (mlockall(MCL_CURRENT | MCL_FUTURE)) {
 		log_error("failed to mlockall, exiting...");
 		log_close(log_pid);
-		exit(1);
+		exit(ISCSI_ERR);
 	}
 
 	actor_init();

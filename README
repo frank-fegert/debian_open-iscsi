@@ -166,7 +166,7 @@ term node to refer to a portal on a target, so tools like iscsiadm
 require that --targetname and --portal argument be used when in node mode.
 
 For session mode, a session id (sid) is used. The sid of a session can be
-found by running iscsiadm -m session -i. The session id is not currently
+found by running iscsiadm -m session -P 1. The session id is not currently
 persistent and is partially determined by when the session is setup.
 
 Note that some of the iSCSI Node and iSCSI Discovery operations 
@@ -371,9 +371,12 @@ Usage: iscsiadm [OPTION]
 			  iscsi_ifacename.
 
 			  See below for examples.
-  -m host --host=hostno --print=level
-			  Display information for a specific host if hostno
-			  is passed in. If no hostno is passed in then info
+  -m iface --interface=iscsi_ifacename -C ping --ip=[ipaddr] --packetsize=[size]
+				--count=[count] --interval=[interval]
+  -m host --host=hostno|MAC --print=level -C chap --op=[op] --value=[chap_tbl_idx]
+			  Display information for a specific host. The host
+			  can be passed in by host number or by MAC address.
+			  If a host is not passed in then info
 			  for all hosts is printed.
 
 			  Print level can be 0 to 4.
@@ -408,8 +411,9 @@ this the following is not needed for software iscsi.
 Warning!!!!!!
 This feature is experimental. The interface may change. When reporting
 bugs, if you cannot do a "ping -I ethX target_portal", then check your
-network settings first. If you cannot ping the portal, then you will
-not be able to bind a session to a NIC.
+network settings first. Make sure the rp_filter setting is set to 0 or 2
+(see Prep section below for more info). If you cannot ping the portal,
+then you will not be able to bind a session to a NIC.
 
 What is a scsi_host and iface for software, hardware and partial
 offload iscsi?
@@ -426,6 +430,32 @@ To manage both types of initiator stacks, iscsiadm uses the interface (iface)
 structure. For each HBA port or for software iscsi for each network
 device (ethX) or NIC, that you wish to bind sessions to you must create
 a iface config /etc/iscsi/ifaces.
+
+Prep:
+
+The iface binding feature requires the sysctl setting
+net.ipv4.conf.default.rp_filter to be set to 0 or 2. This can be set
+in /etc/sysctl.conf by having the line:
+
+net.ipv4.conf.default.rp_filter = N
+
+where N is 0 or 2. Note that when setting this you may have to reboot
+the box for the value to take effect.
+
+
+rp_filter information from Documentation/networking/ip-sysctl.txt:
+
+rp_filter - INTEGER
+        0 - No source validation.
+        1 - Strict mode as defined in RFC3704 Strict Reverse Path
+            Each incoming packet is tested against the FIB and if the interface
+            is not the best reverse path the packet check will fail.
+            By default failed packets are discarded.
+        2 - Loose mode as defined in RFC3704 Loose Reverse Path
+            Each incoming packet's source address is also tested against the FIB
+            and if the source address is not reachable via any interface
+            the packet check will fail.
+
 
 Running:
 
@@ -488,10 +518,10 @@ some helpful management commands.
 5.1.2 Setting up a iface for a iSCSI offload card
 =================================================
 
-This section describes how to setup ifaces for use with Chelsio
-and Broadcom cards.
+This section describes how to setup ifaces for use with Chelsio, Broadcom and
+QLogic cards.
 
-By default, iscsiadm will create a iface for each Broadcom and Chelsio
+By default, iscsiadm will create a iface for each Broadcom, QLogic and Chelsio
 port. The iface name will be of the form:
 
 $transport/driver_name.$MAC_ADDRESS
@@ -502,6 +532,7 @@ Running:
 default tcp,<empty>,<empty>,<empty>,<empty>
 iser iser,<empty>,<empty>,<empty>,<empty>
 cxgb3i.00:07:43:05:97:07 cxgb3i,00:07:43:05:97:07,<empty>,<empty>,<empty>
+qla4xxx.00:0e:1e:04:8b:2e qla4xxx,00:0e:1e:04:8b:2e,<empty>,<empty>,<empty>
 
 
 Will report iface configurations that are setup in /etc/iscsi/ifaces.
@@ -520,7 +551,7 @@ default one in /etc/iscsi/initiatorname.iscsi.
 
 
 
-To display these values in a more friendly run:
+To display these values in a more friendly way, run:
 
 iscsiadm -m iface -I cxgb3i.00:07:43:05:97:07
 # BEGIN RECORD 2.0-871
@@ -544,6 +575,38 @@ For the name of the value we want to update we use the name from
 the "iscsiadm -m iface -I cxgb3i.00:07:43:05:97:07" command which is
 "iface.ipaddress".
 
+Note2.
+
+For QLogic ports after updating the iface record, for network settings to take
+effect, one must apply or applyall the settings.
+
+iscsiadm -m iface -I qla4xxx.00:0e:1e:04:8b:2e -o apply or
+iscsiadm -m iface -H 00:0e:1e:04:8b:2e -o applyall
+
+With operation "apply" network setting for the specified iface will take effect.
+With operation "applyall" network settings for all ifaces on a specific host
+will take take effect. The host can be specified using the -H/--host argument
+by either the MAC address of the host or the host number.
+
+
+Here is an example of setting multiple IPv6 address on single iSCSI interface
+port.
+First interface (no need to set iface_num, it is 0 by default)
+
+iscsiadm -m iface -I qla4xxx.00:0e:1e:04:8b:2a -o update \
+	 -n iface.ipaddress -v fec0:ce00:7014:0041:1111:2222:1e04:9392
+
+Create the second interface if it does not exist
+
+iscsiadm -m iface -I qla4xxx.00:0e:1e:04:8b:2a.1 -op=new
+iscsiadm -m iface -I qla4xxx.00:0e:1e:04:8b:2a -o update \
+	 -n iface.iface_num -v 1 (iface_num is mandatory for second iface)
+iscsiadm -m iface -I qla4xxx.00:0e:1e:04:8b:2a -o update \
+	 -n iface.ipaddress -v = fec0:ce00:7014:0041:1111:2222:1e04:9393
+iscsiadm -m iface -H 00:0e:1e:04:8b:2a --op=applyall
+
+Note: If there are common settings for multiple interfaces then the
+settings from 0th iface would be considered valid.
 
 Now, we can use this iface to login into targets, which is described in the
 next section.
@@ -623,6 +686,9 @@ To now log into targets it is the same as with sofware iscsi. See section
 	will perform discovery using the settings stored in the record.
 	If a record does not exist, it will be created using the iscsid.conf
 	discovery settings.
+
+	The argument to -p may also be a hostname instead of an address.
+	    ./iscsiadm -m discoverydb -t st -p smoehost --discover
 
 	For the ifaces, iscsiadm will first search /etc/iscsi/ifaces for
 	interfaces using software iscsi. If any are found then nodes found
@@ -747,6 +813,10 @@ To now log into targets it is the same as with sofware iscsi. See section
 
 	    ./iscsiadm -m node -T iqn.2005-03.com.max \
 				-p [2001:c90::211:9ff:feb8:a9e9]:3260 -l
+
+	To specify a hostname the following can be used:
+
+	    ./iscsiadm -m node -T iqn.2005-03.com.max -p somehost -l
 
     - iSCSI Login to a specific portal through the NIC setup as iface0:
 

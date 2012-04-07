@@ -10,6 +10,7 @@
 #define NODE_NAME	"node.name"
 #define NODE_TPGT	"node.tpgt"
 #define NODE_STARTUP	"node.startup"
+#define NODE_LEADING_LOGIN "node.leading_login"
 #define NODE_DISC_ADDR	"node.discovery_address"
 #define NODE_DISC_PORT	"node.discovery_port"
 #define NODE_DISC_TYPE	"node.discovery_type"
@@ -21,6 +22,7 @@
 #define SESSION_CMDS_MAX	"node.session.cmds_max"
 #define SESSION_XMIT_THREAD_PRIORITY "node.session.xmit_thread_priority"
 #define SESSION_QDEPTH		"node.session.queue_depth"
+#define SESSION_NR_SESSIONS	"node.session.nr_sessions"
 #define SESSION_AUTH_METHOD	"node.session.auth.authmethod"
 #define SESSION_USERNAME	"node.session.auth.username"
 #define SESSION_PASSWORD	"node.session.auth.password"
@@ -75,7 +77,18 @@
 #define IFACE_GATEWAY		"iface.gateway"
 #define IFACE_PRIMARY_DNS	"iface.primary_dns"
 #define IFACE_SEC_DNS		"iface.secondary_dns"
-#define IFACE_VLAN		"iface.vlan"
+#define IFACE_VLAN_ID		"iface.vlan_id"
+#define IFACE_VLAN_PRIORITY	"iface.vlan_priority"
+#define IFACE_VLAN_STATE	"iface.vlan_state"
+#define IFACE_LINKLOCAL	"iface.ipv6_linklocal"
+#define IFACE_ROUTER		"iface.ipv6_router"
+#define IFACE_IPV6_AUTOCFG	"iface.ipv6_autocfg"
+#define IFACE_LINKLOCAL_AUTOCFG	"iface.linklocal_autocfg"
+#define IFACE_ROUTER_AUTOCFG	"iface.router_autocfg"
+#define IFACE_STATE		"iface.state"
+#define IFACE_NUM		"iface.iface_num"
+#define IFACE_MTU		"iface.mtu"
+#define IFACE_PORT		"iface.port"
 
 /* discovery fields */
 #define DISC_STARTUP		"discovery.startup"
@@ -102,5 +115,15 @@
 #define DISC_ISNS_USE_DISC_DAEMON	"discovery.isns.use_discoveryd"
 #define DISC_ISNS_ADDR		"discovery.sendtargets.address"
 #define DISC_ISNS_PORT		"discovery.sendtargets.port"
+
+/* host auth fields */
+#define HOST_AUTH_INDEX			"host.auth.tbl_idx"
+#define HOST_AUTH_METHOD		"host.auth.authmethod"
+#define HOST_AUTH_USERNAME		"host.auth.username"
+#define HOST_AUTH_PASSWORD		"host.auth.password"
+#define HOST_AUTH_PASSWORD_LEN		"host.auth.password_length"
+#define HOST_AUTH_USERNAME_IN		"host.auth.username_in"
+#define HOST_AUTH_PASSWORD_IN		"host.auth.password_in"
+#define HOST_AUTH_PASSWORD_IN_LEN	"host.auth.password_in_length"
 
 #endif

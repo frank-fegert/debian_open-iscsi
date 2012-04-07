@@ -34,6 +34,9 @@
 #include "fwparam.h"
 #include "idbm_fields.h"
 #include "iscsi_net_util.h"
+#include "iscsi_err.h"
+#include "config.h"
+#include "iface.h"
 
 /**
  * fw_setup_nics - setup nics (ethXs) based on ibft net info
@@ -56,7 +59,7 @@ int fw_setup_nics(void)
 	ret = fw_get_targets(&targets);
 	if (ret || list_empty(&targets)) {
 		printf("Could not setup fw entries.\n");
-		return ENODEV;
+		return ISCSI_ERR_NO_OBJS_FOUND;
 	}
 
 	/*
@@ -85,7 +88,10 @@ int fw_setup_nics(void)
 	}
 
 	fw_free_targets(&targets);
-	return ret;
+	if (ret)
+		return ISCSI_ERR;
+	else
+		return 0;
 }
 
 /**
@@ -142,11 +148,19 @@ void fw_free_targets(struct list_head *list)
 
 static void dump_initiator(struct boot_context *context)
 {
+	struct iface_rec iface;
+
+	memset(&iface, 0, sizeof(iface));
+	iface_setup_defaults(&iface);
+	iface_setup_from_boot_context(&iface, context);
+
 	if (strlen(context->initiatorname))
 		printf("%s = %s\n", IFACE_INAME, context->initiatorname);
 
 	if (strlen(context->isid))
 		printf("%s = %s\n", IFACE_ISID, context->isid);
+
+	printf("%s = %s\n", IFACE_TRANSPORTNAME, iface.transport_name);
 }
 
 static void dump_target(struct boot_context *context)
@@ -196,7 +210,7 @@ static void dump_network(struct boot_context *context)
 	if (strlen(context->secondary_dns))
 		printf("%s = %s\n", IFACE_SEC_DNS, context->secondary_dns);
 	if (strlen(context->vlan))
-		printf("%s = %s\n", IFACE_VLAN, context->vlan);
+		printf("%s = %s\n", IFACE_VLAN_ID, context->vlan);
 	if (strlen(context->iface))
 		printf("%s = %s\n", IFACE_NETNAME, context->iface);
 }

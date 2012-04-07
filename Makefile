@@ -24,10 +24,10 @@ IFACEFILES = etc/iface.example
 # using '$(MAKE)' instead of just 'make' allows make to run in parallel
 # over multiple makefile.
 
-all: user kernel
+all: user
 
-user: ;
-	cd utils/open-isns; ./configure; $(MAKE)
+user: utils/open-isns/Makefile
+	$(MAKE) -C utils/open-isns
 	$(MAKE) -C utils/sysdeps
 	$(MAKE) -C utils/fwparam_ibft
 	$(MAKE) -C usr
@@ -40,6 +40,9 @@ user: ;
 	@echo "Built boot tool:                     usr/iscsistart"
 	@echo
 	@echo "Read README file for detailed information."
+
+utils/open-isns/Makefile: utils/open-isns/configure utils/open-isns/Makefile.in
+	cd utils/open-isns; ./configure CFLAGS="$(OPTFLAGS)" --with-security=no
 
 kernel: force
 	$(MAKE) -C kernel
@@ -68,7 +71,7 @@ clean:
 	install_initd_suse install_initd_redhat install_initd_debian \
 	install_etc install_iface install_doc install_kernel install_iname
 
-install: install_kernel install_programs install_doc install_etc \
+install: install_programs install_doc install_etc \
 	install_initd install_iname install_iface
 
 install_user: install_programs install_doc install_etc \

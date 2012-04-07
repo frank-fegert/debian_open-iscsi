@@ -73,7 +73,7 @@ struct iscsi_connection_timeout_config {
 	int noop_out_timeout;
 };
 
-/* all per-connection timeouts go in this structure.
+/* all per-session timeouts go in this structure.
  * this structure is per-session, and can be configured
  * by TargetName but not by Subnet.
  */
@@ -141,7 +141,8 @@ struct iscsi_sendtargets_config {
 	int discoveryd_poll_inval;
 	struct iscsi_auth_config auth;
 	struct iscsi_connection_timeout_config conn_timeo;
-	struct iscsi_conn_operational_config iscsi;
+	struct iscsi_conn_operational_config conn_conf;
+	struct iscsi_session_operational_config session_conf;
 };
 
 struct iscsi_isns_config {
@@ -188,21 +189,48 @@ typedef struct session_rec {
 	int					cmds_max;
 	int					queue_depth;
 	int					initial_login_retry_max;
+	int					nr_sessions;
 	struct iscsi_auth_config		auth;
 	struct iscsi_session_timeout_config	timeo;
 	struct iscsi_error_timeout_config	err_timeo;
 	struct iscsi_session_operational_config	iscsi;
+	struct session_info			*info;
+	unsigned                                sid;
+	/*
+	 * This is a flag passed to iscsid.  If set, multiple sessions are
+	 * allowed to be initiated on this record
+	 */
+	unsigned char                           multiple;
 } session_rec_t;
 
 #define ISCSI_TRANSPORT_NAME_MAXLEN 16
+#define ISCSI_MAX_STR_LEN 80
 
 typedef struct iface_rec {
 	struct list_head	list;
 	/* iscsi iface record name */
 	char			name[ISCSI_MAX_IFACE_LEN];
+	uint32_t		iface_num;
 	/* network layer iface name (eth0) */
 	char			netdev[IFNAMSIZ];
 	char			ipaddress[NI_MAXHOST];
+	char			subnet_mask[NI_MAXHOST];
+	char			gateway[NI_MAXHOST];
+	char			bootproto[ISCSI_MAX_STR_LEN];
+	char			ipv6_linklocal[NI_MAXHOST];
+	char			ipv6_router[NI_MAXHOST];
+	char			ipv6_autocfg[NI_MAXHOST];
+	char			linklocal_autocfg[NI_MAXHOST];
+	char			router_autocfg[NI_MAXHOST];
+	uint16_t		vlan_id;
+	uint8_t			vlan_priority;
+	char			vlan_state[ISCSI_MAX_STR_LEN];
+	char			state[ISCSI_MAX_STR_LEN]; /* 0 = disable,
+							   * 1 = enable */
+	uint16_t		mtu;
+	uint16_t		port;
+	char			port_state[ISCSI_MAX_STR_LEN];
+	char			port_speed[ISCSI_MAX_STR_LEN];
 	/*
 	 * TODO: we may have to make this bigger and interconnect
 	 * specific for infinniband 
@@ -222,6 +250,7 @@ typedef struct node_rec {
 	char			name[TARGET_NAME_MAXLEN];
 	int			tpgt;
 	iscsi_startup_e		startup;
+	int			leading_login;
 	session_rec_t		session;
 	conn_rec_t		conn[ISCSI_CONN_MAX];
 	iface_rec_t		iface;

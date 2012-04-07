@@ -1,8 +1,7 @@
 /*
- * cxgb3i helpers
+ * iSCSI timer
  *
- * Copyright (C) 2006 Mike Christie
- * Copyright (C) 2006 Red Hat, Inc. All rights reserved.
+ * Copyright (C) 2002 Cisco Systems, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -13,12 +12,17 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
+ *
+ * See the file COPYING included with this distribution for more details.
  */
-#include "initiator.h"
+#ifndef ISCSI_TIMER_H
+#define ISCSI_TIMER_H
 
-void cxgb3i_create_conn(struct iscsi_conn *conn)
-{
-	/* card can handle up to 15360 bytes */
-	if (conn->max_recv_dlength > 8192)
-		conn->max_recv_dlength = 8192;
-}
+struct timeval;
+
+extern void iscsi_timer_clear(struct timeval *timer);
+extern void iscsi_timer_set(struct timeval *timer, int seconds);
+extern int iscsi_timer_expired(struct timeval *timer);
+extern int iscsi_timer_msecs_until(struct timeval *timer);
+
+#endif

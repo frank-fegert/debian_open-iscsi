@@ -1,8 +1,7 @@
 /*
- * iSCSI Initiator Daemon
+ * iSCSI Netlink attr helpers
  *
- * Copyright (C) 2004 Dmitry Yusupov, Alex Aizman
- * maintained by open-iscsi@@googlegroups.com
+ * Copyright (C) 2011 Red Hat, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -17,19 +16,18 @@
  * See the file COPYING included with this distribution for more details.
  */
 
-#ifndef ISCSID_H
-#define ISCSID_H
+#ifndef ISCSI_NLA_H
+#define ISCSI_NLA_H
 
-/* IPC API */
-extern struct iscsi_ipc *ipc;
+#include <linux/netlink.h>
 
-/* iscsid.c: daemon config */
-struct iscsi_daemon_config {
-	char *config_file;
-	char *pid_file;
-	char *initiator_name;
-	char *initiator_alias;
-};
-extern struct iscsi_daemon_config *dconfig;
+struct iovec;
 
-#endif	/* ISCSID_H */
+#define ISCSI_NLA_HDRLEN	((int) NLA_ALIGN(sizeof(struct nlattr)))
+#define ISCSI_NLA_DATA(nla)	((void *)((char*)(nla) + ISCSI_NLA_HDRLEN))
+#define ISCSI_NLA_LEN(len) 	((len) + NLA_ALIGN(ISCSI_NLA_HDRLEN))
+#define ISCSI_NLA_TOTAL_LEN(len) (NLA_ALIGN(ISCSI_NLA_LEN(len)))
+
+extern struct nlattr *iscsi_nla_alloc(uint16_t type, uint16_t len);
+
+#endif

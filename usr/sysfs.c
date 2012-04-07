@@ -547,7 +547,7 @@ found:
 }
 
 
-char *sysfs_get_value(char *id, char *subsys, char *param)
+char *sysfs_get_value(const char *id, char *subsys, char *param)
 {
 	char devpath[PATH_SIZE];
 	char *sysfs_value;
@@ -590,7 +590,7 @@ int sysfs_get_uint(char *id, char *subsys, char *param,
 	return 0;
 }
 
-int sysfs_get_int(char *id, char *subsys, char *param, int *value)
+int sysfs_get_int(const char *id, char *subsys, char *param, int *value)
 {
 	char *sysfs_value;
 
@@ -633,6 +633,34 @@ int sysfs_get_uint64(char *id, char *subsys, char *param, uint64_t *value)
 
 	if (sscanf(sysfs_value, "%" PRIu64 "\n", value) != 1)
 		return EINVAL;
+	return 0;
+}
+
+int sysfs_get_uint8(char *id, char *subsys, char *param,
+		    uint8_t *value)
+{
+	char *sysfs_value;
+
+	*value = -1;
+	sysfs_value = sysfs_get_value(id, subsys, param);
+	if (!sysfs_value)
+		return EIO;
+
+	*value = (uint8_t)atoi(sysfs_value);
+	return 0;
+}
+
+int sysfs_get_uint16(char *id, char *subsys, char *param,
+		     uint16_t *value)
+{
+	char *sysfs_value;
+
+	*value = -1;
+	sysfs_value = sysfs_get_value(id, subsys, param);
+	if (!sysfs_value)
+		return EIO;
+
+	*value = (uint16_t)atoi(sysfs_value);
 	return 0;
 }
 
