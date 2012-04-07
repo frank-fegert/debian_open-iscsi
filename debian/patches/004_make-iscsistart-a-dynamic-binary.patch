@@ -9,11 +9,11 @@ Subject: [PATCH 32/43] make iscsistart a dynamic binary
 
 Index: open-iscsi/usr/Makefile
 ===================================================================
---- open-iscsi.orig/usr/Makefile	2011-08-25 12:28:04.822735205 +0530
-+++ open-iscsi/usr/Makefile	2011-08-25 12:28:05.590746279 +0530
-@@ -60,7 +60,7 @@
+--- open-iscsi.orig/usr/Makefile	2012-04-07 19:36:03.299049291 +0530
++++ open-iscsi/usr/Makefile	2012-04-07 19:39:32.276085546 +0530
+@@ -61,7 +61,7 @@
  
- iscsistart: $(IPC_OBJ) $(ISCSI_LIB_SRCS) $(INITIATOR_SRCS) $(FW_BOOT_SRCS) \
+ iscsistart: $(ISCSI_LIB_SRCS) $(INITIATOR_SRCS) $(FW_BOOT_SRCS) \
  		iscsistart.o statics.o
 -	$(CC) $(CFLAGS) -static $^ -o $@
 +	$(CC) $(CFLAGS) $^ -o $@
