@@ -1,2 +1,3 @@
 01_spelling-error-fixes.patch
 02_make-iscsistart-a-dynamic-binary.patch
+03_hardened-build-flags.patch
