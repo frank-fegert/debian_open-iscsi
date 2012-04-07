@@ -1,8 +1,27 @@
-open-iscsi (2.0.872+git0.6676a1cf-1) unstable; urgency=low
+open-iscsi (2.0.872+git0.6676a1cf-1) experimental; urgency=low
 
+  [ Ritesh Raj Sarraf ]
   * New Upstream git snapshot (Closes: #645752) 
+  * [ce26f7c] Imported Upstream version 2.0.872+git0.6676a1cf
+  * [9ad08d7] also include iscsitart in the udeb
+  * [bc79ad2] refresh patch debian/patches/spelling-error-fixes.patch
+  * [0286328] refresh patch 004_make-iscsistart-a-dynamic-binary.patch
+  * [360a509] Drop patches:
+    + iscsi-dont-build-with-ssl.patch and
+    + disable-isns-security.patch
+  * [350db4d] rename and reorder patches
+  * [794fa4f] Package-Type is now an understood feild by dpkg
+  * [593f187] Add hardened build flags.
+    Thanks to Moritz Muehlenhoff (Closes: #659662)
+  * [cf4c6c3] Kill iscsid processes properly, on stop.
+    Thanks to Gwendal Grignou (Closes: #665966)
+  * [f1a9d2f] linitan fixes for spelling errors and manpage hyphen errors
+  * [a8560c8] add and fix lsb headers for init files
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Sat, 07 Apr 2012 19:42:03 +0530
+  [ Colin Watson ]
+  * [156b745] open-iscsi: add a udeb (Closes: #635161)
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Sat, 07 Apr 2012 21:02:37 +0530
 
 open-iscsi (2.0.872-2) unstable; urgency=low
 
