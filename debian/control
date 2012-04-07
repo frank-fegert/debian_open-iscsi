@@ -31,7 +31,7 @@ Description: High performance, transport independent iSCSI implementation
 Package: open-iscsi-udeb
 Architecture: any
 Section: debian-installer
-XC-Package-Type: udeb
+Package-Type: udeb
 Depends: ${shlibs:Depends}, ${misc:Depends}, scsi-modules, libnss-files-udeb
 Description: Configure iSCSI
  Open-iSCSI is a high-performance, transport independent, multi-platform
