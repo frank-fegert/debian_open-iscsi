@@ -1,3 +1,9 @@
+open-iscsi (2.0.872+git0.6676a1cf-1) unstable; urgency=low
+
+  * New Upstream git snapshot (Closes: #645752) 
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Sat, 07 Apr 2012 19:42:03 +0530
+
 open-iscsi (2.0.872-2) unstable; urgency=low
 
   * Upload to unstable 
