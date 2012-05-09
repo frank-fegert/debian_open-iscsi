@@ -51,6 +51,7 @@ do_iscsi_login ()
 			   ${ISCSI_IN_USERNAME:+-U "$ISCSI_IN_USERNAME"}\
 			   ${ISCSI_IN_PASSWORD:+-W "$ISCSI_IN_PASSWORD"}
 	else
+		modprobe iscsi_ibft
 		iscsistart -b
 	fi
 
