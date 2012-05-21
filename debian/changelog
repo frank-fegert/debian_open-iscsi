@@ -1,3 +1,14 @@
+open-iscsi (2.0.873-1) unstable; urgency=low
+
+  * [53943f2] Load iscsi_ibft module to allow target session over iBFT.
+    Thanks to JOORIS Emmanuel (Closes: #672122)
+  * [ca41744] Delete old obsolete patches
+  * [01a54bf] Drop old manpages already available upstream
+  * [caf884c] ship upstream manpages for iscsi-iname and iscsistart
+  * [a983848] Imported Upstream version 2.0.873
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Mon, 21 May 2012 23:54:53 +0530
+
 open-iscsi (2.0.872+git0.6676a1cf-2) unstable; urgency=low
 
   * Upload to unstable
