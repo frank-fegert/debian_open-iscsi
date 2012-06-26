@@ -1,3 +1,10 @@
+open-iscsi (2.0.873-2) unstable; urgency=low
+
+  * [0019fa9] Restrict architecture for the udeb package as its dependency,
+    scsi-modules, is not available on all the architecture paltforms
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Tue, 26 Jun 2012 18:54:17 +0530
+
 open-iscsi (2.0.873-1) unstable; urgency=low
 
   * [53943f2] Load iscsi_ibft module to allow target session over iBFT.
