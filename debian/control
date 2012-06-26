@@ -29,7 +29,7 @@ Description: High performance, transport independent iSCSI implementation
  utility, iscsiadm
 
 Package: open-iscsi-udeb
-Architecture: any
+Architecture: amd64 i386 ia64 mips mipsel powerpc
 Section: debian-installer
 Package-Type: udeb
 Depends: ${shlibs:Depends}, ${misc:Depends}, scsi-modules, libnss-files-udeb
