@@ -1,3 +1,9 @@
+open-iscsi (2.0.873-3) unstable; urgency=low
+
+  * [4939401] Fix build to install udeb stuff only on supported architectures
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Wed, 27 Jun 2012 22:36:05 +0530
+
 open-iscsi (2.0.873-2) unstable; urgency=low
 
   * [0019fa9] Restrict architecture for the udeb package as its dependency,
