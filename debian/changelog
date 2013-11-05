@@ -1,5 +1,7 @@
 open-iscsi (2.0.873+git0.3b4b4500-1) unstable; urgency=low
 
+  * [53a1224] Fix typo in README.
+    Thanks to Jim Paris (Closes: #693559)
   * [1fcfdb8] Imported Upstream version 2.0.873+git0.3b4b4500
     (Closes: #722562)
   * [2280fc1] Refresh Patches
@@ -13,7 +15,7 @@ open-iscsi (2.0.873+git0.3b4b4500-1) unstable; urgency=low
   * [2478ad6] Don't allow iscsid to get killed during shutodown.
     Thanks to Wakko Warner (Closes: #700762)
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Tue, 05 Nov 2013 21:33:55 +0530
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Tue, 05 Nov 2013 21:45:47 +0530
 
 open-iscsi (2.0.873-3) unstable; urgency=low
 
