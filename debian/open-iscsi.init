@@ -126,10 +126,48 @@ start() {
 	# Now let's mount
 	log_daemon_msg "Mounting network filesystems"
 	MOUNT_RESULT=1
-	if mount -a -O _netdev >/dev/null 2>&1; then
-		MOUNT_RESULT=0
-		break
-	fi
+	fs=
+	grep -w _netdev /etc/fstab | \
+	    while read DEV MTPT FSTYPE OPTS REST; do
+		case "$DEV" in
+		    ""|\#*)
+			continue
+			;;
+		esac
+		case "$OPTS" in
+		    noauto|*,noauto|noauto,*|*,noauto,*)
+			continue
+			;;
+		esac
+		case "$FSTYPE" in
+		    nfs|nfs4|smbfs|cifs|coda|ncp|ncpfs|ocfs2|gfs|ceph)
+			continue
+			;;
+		    *)
+			echo "$FSTYPE:$DEV"
+			;;
+		esac
+	    done | \
+	    while read fs; do
+		set -- $(eval echo "$fs" | sed 's@:@ @')
+		case "$1" in
+		    swap)
+			swapon $2
+			;;
+		    *)
+			fsck -a "$2"
+
+			if mount "$2" >/dev/null 2>&1; then
+			    MOUNT_RESULT=0
+			    break
+			fi
+			;;
+		esac
+	    done
+
+
+
+
 	log_end_msg $MOUNT_RESULT
 }
 
