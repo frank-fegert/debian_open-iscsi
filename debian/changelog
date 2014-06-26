@@ -1,3 +1,20 @@
+open-iscsi (2.0.873+git0.3b4b4500-2) unstable; urgency=medium
+
+  [ Philipp Hug ]
+  * [b517ebb] Start open-iscsi after installation and make sure
+    initiatorname is generated.
+
+  [ Ritesh Raj Sarraf ]
+  * [7e1ae42] Add patch to enable fsck, mount and swap for network
+    block devices. Thanks to Turbo Fredriksson (Closes: #736349)
+  * [92ac387] Don't prematurely exit when encountering targets with
+    no block device. Thanks to Sammy Atmadja (Closes: #745708)
+  * [7363428] Add autotools-dev for updated config.{sub,guess}. Also add
+    dh-autoreconf in build-depends to support new architectures.
+    Thanks to Chen Baozi <baozich@gmail.com> and Wookey (Closes: 750610)
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Thu, 26 Jun 2014 13:05:48 +0530
+
 open-iscsi (2.0.873+git0.3b4b4500-1) unstable; urgency=low
 
   * [53a1224] Fix typo in README.
