@@ -128,7 +128,6 @@ start() {
 	MOUNT_RESULT=1
 	if mount -a -O _netdev >/dev/null 2>&1; then
 		MOUNT_RESULT=0
-		break
 	fi
 	log_end_msg $MOUNT_RESULT
 
@@ -137,7 +136,6 @@ start() {
 	SWAP_RESULT=1
 	if swapon -a -e >/dev/null 2>&1; then
 		SWAP_RESULT=0
-		break
 	fi
 	log_end_msg $SWAP_RESULT
 }
