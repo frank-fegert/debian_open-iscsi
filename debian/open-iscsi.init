@@ -131,6 +131,15 @@ start() {
 		break
 	fi
 	log_end_msg $MOUNT_RESULT
+
+	# Also enable any new swap devices (network) that popped up.
+	log_daemon_msg "Enabling network swap devices"
+	SWAP_RESULT=1
+	if swapon -a -e >/dev/null 2>&1; then
+		SWAP_RESULT=0
+		break
+	fi
+	log_end_msg $SWAP_RESULT
 }
 
 starttargets() {
