@@ -1,3 +1,10 @@
+open-iscsi (2.0.873+git0.3b4b4500-4) unstable; urgency=medium
+
+  * [41c7eca] Introduce new architectures based on current build
+    status of the Debian Installer (Closes: #759817)
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Mon, 01 Sep 2014 14:32:59 +0530
+
 open-iscsi (2.0.873+git0.3b4b4500-3) unstable; urgency=medium
 
   * [56e20ac] Revert "Add patch to enable fsck, mount and swap
