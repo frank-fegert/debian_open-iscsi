@@ -105,7 +105,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH),$(SUPPORTED_ARCH_UDEB)))
 	install -m 755 utils/iscsi_discovery $(CURDIR)/debian/open-iscsi-udeb/sbin
 	install -m 755 usr/iscsid $(CURDIR)/debian/open-iscsi-udeb/sbin
 	install -m 755 usr/iscsistart $(CURDIR)/debian/open-iscsi-udeb/sbin
-	install -m 644 etc/iscsid.conf $(CURDIR)/debian/open-iscsi-udeb/etc/iscsi
+	install -m 600 etc/iscsid.conf $(CURDIR)/debian/open-iscsi-udeb/etc/iscsi
 	install -m 644 debian/open-iscsi-udeb.start $(CURDIR)/debian/open-iscsi-udeb/sbin/iscsi-start
 	install -m 755 debian/open-iscsi-udeb.finish-install $(CURDIR)/debian/open-iscsi-udeb/usr/lib/finish-install.d/10open-iscsi
 endif
