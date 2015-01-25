@@ -11,6 +11,8 @@ update_initramfs()
     fi
 }
 
+#DEBHELPER#
+
 case "$1" in
     configure)
 	# Move old configuration from /etc/ into /etc/iscsi/
@@ -42,7 +44,5 @@ case "$1" in
         exit 1
     ;;
 esac
-
-#DEBHELPER#
 
 exit 0
