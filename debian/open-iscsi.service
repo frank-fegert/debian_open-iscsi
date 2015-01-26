@@ -20,3 +20,4 @@ ExecStop=/etc/init.d/open-iscsi stop
 
 [Install]
 WantedBy=multi-user.target
+Alias=iscsi.service
