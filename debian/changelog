@@ -10,7 +10,14 @@ open-iscsi (2.0.873+git0.3b4b4500-5) unstable; urgency=medium
   * Reorder #DEBHELPER# in postinst to not break upgrades (dh-systemd's
     code has to be there before invoke-rc.d is called).
 
- -- Christian Seiler <christian@iwakd.de>  Mon, 19 Jan 2015 19:45:05 +0100
+  [ Ritesh Raj Sarraf ]
+  * [fa0ce1c] Install iscsid.conf with permission 600 (Closes: #735773)
+  * [eeb3e90] Don't wait in detecting disks when run under systemd.
+    Thanks to Christian Seiler (Closes: #775778)
+  * [641f3ee] Add gbp.conf
+  * [cff497b] Add iscsi.service as an Alias
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Mon, 26 Jan 2015 13:04:33 +0530
 
 open-iscsi (2.0.873+git0.3b4b4500-4) unstable; urgency=medium
 
