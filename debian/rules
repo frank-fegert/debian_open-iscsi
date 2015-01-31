@@ -97,6 +97,7 @@ install-arch:
 	install -m 644 debian/initiatorname.iscsi $(CURDIR)/debian/open-iscsi/etc/iscsi/initiatorname.iscsi
 	install -m 600 etc/iscsid.conf $(CURDIR)/debian/open-iscsi/etc/iscsi
 	install -m 644 debian/open-iscsi.default $(CURDIR)/debian/open-iscsi/etc/default/open-iscsi
+	install -m 644 debian/open-iscsi.systemd-drop-in $(CURDIR)/debian/open-iscsi/lib/systemd/system/open-iscsi.service.d/fix-systemd-deps.conf
 
 ifneq (,$(findstring $(DEB_HOST_ARCH),$(SUPPORTED_ARCH_UDEB)))
 	# udeb stuff
