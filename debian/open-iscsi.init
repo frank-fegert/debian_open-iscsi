@@ -107,16 +107,6 @@ start() {
 
 	udevadm settle || true;
 
-	# If we are under systemd, make sure we start umountiscsi.sh.
-	# This is a no-op, but systemd tracks each unit's status, so
-	# we unless we start it here, the invoke-rc.d during stop()
-	# doesn't do anything.
-	if [ -d /run/systemd/system ] ; then
-		# we don't want to deadlock here, so ignore deps,
-		# the start of the service is a no-op anyway
-		systemctl --job-mode=ignore-dependencies start umountiscsi.service
-	fi
-
 
 	# Handle iSCSI LVM devices
 	if [ ! -x "/sbin/vgchange" -a -n "$LVMGROUPS" ]; then
