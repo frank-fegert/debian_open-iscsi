@@ -1,8 +1,14 @@
 open-iscsi (2.0.873+git0.3b4b4500-7) unstable; urgency=medium
 
-  * Revert changes introduced in 2.0.873+git0.3b4b4500-5 
+  [ Ritesh Raj Sarraf ]
+  * [8ed5fd2] Revert changes introduced in 2.0.873+git0.3b4b4500-5
 
- -- Ritesh Raj Sarraf <rrs@debian.org>  Tue, 03 Feb 2015 13:29:57 +0530
+  [ Christian Seiler ]
+  * [cea864b] Clean up sysvinit ordering w.r.t. NFS.
+  * [9097d07] Remove debian/gbp.conf again (change doesn't fit release
+    criteria).
+
+ -- Christian Seiler <christian@iwakd.de>  Mon, 09 Feb 2015 16:32:52 +0100
 
 open-iscsi (2.0.873+git0.3b4b4500-6) unstable; urgency=medium
 
