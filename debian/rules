@@ -134,7 +134,7 @@ binary-common:
 	dh_link
 	dh_strip
 	dh_compress 
-	dh_fixperms
+	dh_fixperms -Xetc/iscsi/iscsid.conf
 	dh_makeshlibs
 	dh_installdeb
 	dh_shlibdeps
