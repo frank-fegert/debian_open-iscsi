@@ -1,0 +1,11 @@
+#!/usr/bin/dh-exec
+usr/iscsiadm                           /usr/bin
+usr/iscsid                             /usr/sbin
+usr/iscsistart                         /usr/sbin
+utils/iscsi_discovery                  /usr/sbin
+utils/iscsi-iname                      /usr/sbin
+debian/initiatorname.iscsi             /etc/iscsi
+etc/iscsid.conf                        /etc/iscsi
+debian/open-iscsi.systemd-drop-in   => /lib/systemd/system/open-iscsi.service.d/fix-systemd-deps.conf
+debian/extra/initramfs.hook         => /usr/share/initramfs-tools/hooks/iscsi
+debian/extra/initramfs.local-top    => /usr/share/initramfs-tools/scripts/local-top/iscsi

@@ -2,152 +2,51 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-# This has to be exported to make some magic below work.
-export DH_OPTIONS
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/default.mk
 
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_CFLAGS_MAINT_APPEND = -Wall
 
-# get-orig-source target
-DEB_UPSTREAM_VERSION=$(shell dpkg-parsechangelog | sed -rne 's,^Version: ([^-]+).*,\1,p')
-
-DEB_HOST_ARCH?=$(shell dpkg-architecture -qDEB_HOST_ARCH)
-SUPPORTED_ARCH_UDEB = amd64 arm64 i386 ia64 mips mipsel powerpc
-
-get-orig-source:
-	[ ! -f $(ORIG_FILE).gz ] || rm -f $(ORIG_FILE).gz
-	uscan --force-download --rename --repack --download-version=$(DEB_UPSTREAM_VERSION) --destdir=.
-
-
-CFLAGS = -Wall -g
 export OPTFLAGS =-DDISCOVERY_FILE=\"/var/lib/open-iscsi/discovery\" -DNODE_FILE=\"/var/lib/open-iscsi/node\"
 
-ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
-	CFLAGS += -O0
-else
-	CFLAGS += -O2
-endif
+%:
+	dh $@ --with autotools_dev,autoreconf
 
-# For Hardening
-export DEB_BUILD_MAINT_OPTIONS = hardening=+all
-DPKG_EXPORT_BUILDFLAGS = 1
-include /usr/share/dpkg/buildflags.mk
-#
+DEB_UPSTREAM_VERSION := $(shell dpkg-parsechangelog | sed -rne 's,^Version: ([^-]+).*,\1,p')
 
-configure: configure-stamp
-configure-stamp:
-	dh_testdir
-	# Add here commands to configure the package.
-	dh_autotools-dev_updateconfig
-	dh_autoreconf
+get-orig-source:
+	uscan --force-download --rename --repack --download-version=$(DEB_UPSTREAM_VERSION) --destdir=.
 
-	touch configure-stamp
-
-
-#Architecture 
-build: build-arch
-
-build-arch: build-arch-stamp
-build-arch-stamp: configure-stamp 
-
-	# Add here commands to compile the arch part of the package.
+override_dh_auto_build:
 	$(MAKE) -C utils/fwparam_ibft
 	$(MAKE) user
 	$(MAKE) -C utils
 
-	touch build-arch-stamp
-
-build-indep: build-indep-stamp
-build-indep-stamp: configure-stamp 
-
-	# Add here commands to compile the indep part of the package.
-	#$(MAKE) doc
-	touch build-indep-stamp
-
-clean:
-	dh_testdir
-	dh_testroot
-	rm -f build-arch-stamp build-indep-stamp configure-stamp
-
-	# Add here commands to clean up after the build process.
+override_dh_auto_clean:
 	$(MAKE) -C utils/fwparam_ibft clean
 	$(MAKE) -C usr clean
 	$(MAKE) -C utils clean
 	rm -rf modules
 
-	dh_autotools-dev_restoreconfig
-	dh_autoreconf_clean
-	dh_clean 
+override_dh_auto_install:
+	@# do nothing, we install stuff with dh_install etc.
 
-install: install-arch
-# disabled kernel module package for now because source is already in debian stock kernelsy
-install-indep:
+override_dh_fixperms:
+	dh_fixperms
+	@# That configuration file might contain authentication data, so
+	@# don't make it world-readable. See bug #735773 for details.
+	chmod 0600 $(CURDIR)/debian/open-iscsi/etc/iscsi/iscsid.conf
+	@# Since this file is copied from the installer ramdisk to the
+	@# system if the udeb is used, the permissions need to be changed
+	@# here as well.
+	@# However, we might be building on an architecture that doesn't
+	@# have udeb support yet (see debian/control), so see if it was
+	@# installed during build before trying to adjust permissions.
+	if [ -f $(CURDIR)/debian/open-iscsi-udeb/etc/iscsi/iscsid.conf ] ; then \
+		chmod 0600 $(CURDIR)/debian/open-iscsi-udeb/etc/iscsi/iscsid.conf ; \
+	fi
 
-install-arch:
-	dh_testdir
-	dh_testroot
-	dh_prep
-	dh_installdirs -s
-
-	# Add here commands to install the arch part of the package into 
-	# debian/open-iscsi.
-	install -m 755 usr/iscsiadm $(CURDIR)/debian/open-iscsi/usr/bin
-	install -m 755 usr/iscsid $(CURDIR)/debian/open-iscsi/usr/sbin
-	install -m 755 usr/iscsistart $(CURDIR)/debian/open-iscsi/usr/sbin
-	install -m 755 utils/iscsi_discovery $(CURDIR)/debian/open-iscsi/usr/sbin
-	install -m 755 utils/iscsi-iname $(CURDIR)/debian/open-iscsi/usr/sbin
-	install -m 644 debian/initiatorname.iscsi $(CURDIR)/debian/open-iscsi/etc/iscsi/initiatorname.iscsi
-	install -m 600 etc/iscsid.conf $(CURDIR)/debian/open-iscsi/etc/iscsi
-	install -m 644 debian/open-iscsi.default $(CURDIR)/debian/open-iscsi/etc/default/open-iscsi
-	install -m 644 debian/open-iscsi.systemd-drop-in $(CURDIR)/debian/open-iscsi/lib/systemd/system/open-iscsi.service.d/fix-systemd-deps.conf
-
-ifneq (,$(findstring $(DEB_HOST_ARCH),$(SUPPORTED_ARCH_UDEB)))
-	# udeb stuff
-	install -m 755 usr/iscsiadm $(CURDIR)/debian/open-iscsi-udeb/bin
-	install -m 755 utils/iscsi-iname $(CURDIR)/debian/open-iscsi-udeb/sbin
-	install -m 755 utils/iscsi_discovery $(CURDIR)/debian/open-iscsi-udeb/sbin
-	install -m 755 usr/iscsid $(CURDIR)/debian/open-iscsi-udeb/sbin
-	install -m 755 usr/iscsistart $(CURDIR)/debian/open-iscsi-udeb/sbin
-	install -m 600 etc/iscsid.conf $(CURDIR)/debian/open-iscsi-udeb/etc/iscsi
-	install -m 644 debian/open-iscsi-udeb.start $(CURDIR)/debian/open-iscsi-udeb/sbin/iscsi-start
-	install -m 755 debian/open-iscsi-udeb.finish-install $(CURDIR)/debian/open-iscsi-udeb/usr/lib/finish-install.d/10open-iscsi
-endif
-
-	# initramfs stuff
-	install -m 755 debian/extra/initramfs.hook \
-		$(CURDIR)/debian/open-iscsi/usr/share/initramfs-tools/hooks/iscsi
-	install -m 755 debian/extra/initramfs.local-top \
-		$(CURDIR)/debian/open-iscsi/usr/share/initramfs-tools/scripts/local-top/iscsi
-
-	dh_install -s
-
-# Must not depend on anything. This is to be called by
-# binary-arch/binary-indep
-# in another 'make' thread.
-binary-common:
-	dh_testdir
-	dh_testroot
-	dh_installchangelogs 
-	dh_installdocs
-	dh_installexamples
-	dh_installinit -u 'start 45 S . stop 81 0 1 6 .' --no-start
-	dh_installinit -u 'stop 80 0 1 6 .' --no-start --name=umountiscsi.sh
-	dh_installman
-	dh_link
-	dh_strip
-	dh_compress 
-	dh_fixperms -Xetc/iscsi/iscsid.conf
-	dh_makeshlibs
-	dh_installdeb
-	dh_shlibdeps
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb
-# Build architecture independant packages using the common target.
-binary-indep: build-indep install-indep
-#	$(MAKE) -f debian/rules DH_OPTIONS=-i binary-common
-
-# Build architecture dependant packages using the common target.
-binary-arch: build-arch install-arch
-	$(MAKE) -f debian/rules DH_OPTIONS=-a binary-common
-
-binary: binary-arch binary-indep
-.PHONY: build clean binary-indep binary-arch binary install install-indep install-arch configure get-orig-source
+override_dh_installinit:
+	dh_installinit --no-start
+	dh_installinit --no-start --name=umountiscsi.sh
