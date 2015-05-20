@@ -29,7 +29,6 @@ case "$1" in
 	fi
 
 	update_initramfs
-	invoke-rc.d open-iscsi start
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
@@ -42,5 +41,9 @@ case "$1" in
 esac
 
 #DEBHELPER#
+
+if [ "$1" = configure ] ; then
+	invoke-rc.d open-iscsi start
+fi
 
 exit 0
