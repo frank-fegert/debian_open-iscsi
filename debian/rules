@@ -8,7 +8,8 @@ include /usr/share/dpkg/default.mk
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_CFLAGS_MAINT_APPEND = -Wall
 
-export OPTFLAGS =-DDISCOVERY_FILE=\"/var/lib/open-iscsi/discovery\" -DNODE_FILE=\"/var/lib/open-iscsi/node\"
+# open-iscsi's build system uses OPTFLAGS to set CFLAGS
+export OPTFLAGS =-DDISCOVERY_FILE=\"/var/lib/open-iscsi/discovery\" -DNODE_FILE=\"/var/lib/open-iscsi/node\" $(CPPFLAGS) $(CFLAGS)
 
 %:
 	dh $@ --with autotools_dev,autoreconf
