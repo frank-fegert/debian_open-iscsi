@@ -9,7 +9,7 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_CFLAGS_MAINT_APPEND = -Wall
 
 # open-iscsi's build system uses OPTFLAGS to set CFLAGS
-export OPTFLAGS =-DDISCOVERY_FILE=\"/var/lib/open-iscsi/discovery\" -DNODE_FILE=\"/var/lib/open-iscsi/node\" $(CPPFLAGS) $(CFLAGS)
+export OPTFLAGS = $(CPPFLAGS) $(CFLAGS)
 
 %:
 	dh $@ --with autotools_dev,autoreconf

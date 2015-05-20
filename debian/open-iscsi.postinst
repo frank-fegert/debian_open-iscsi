@@ -22,12 +22,10 @@ case "$1" in
 		chmod 600 /etc/iscsi/initiatorname.iscsi
 	    fi
 	fi
-	
+
+	# Obsolete (only open-iscsi 1.0)
 	if [ -d /var/lib/open-iscsi ]; then
-		chmod 700   /var/lib/open-iscsi
-	else
-		mkdir /var/lib/open-iscsi
-		chmod 700   /var/lib/open-iscsi
+		rmdir --ignore-fail-on-non-empty /var/lib/open-iscsi
 	fi
 
 	update_initramfs
