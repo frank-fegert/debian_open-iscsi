@@ -165,7 +165,7 @@ stop() {
 	fi
 
 	# Call umountiscsi.sh to unmount iSCSI devices first
-	invoke-rc.d umountiscsi.sh stop
+	/lib/open-iscsi/umountiscsi.sh
 	exit_status=$?
 	if [ $exit_status -ne 0 ]; then
 		log_failure_msg "Couldn't unmount all iSCSI devices. Cannot stop iSCSI service"

@@ -50,4 +50,3 @@ override_dh_fixperms:
 
 override_dh_installinit:
 	dh_installinit --no-start
-	dh_installinit --no-start --name=umountiscsi.sh

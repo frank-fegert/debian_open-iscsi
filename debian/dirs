@@ -7,4 +7,5 @@ etc/iscsi
 etc/network/if-up.d
 usr/share/initramfs-tools/hooks/
 usr/share/initramfs-tools/scripts/local-top/
+lib/open-iscsi
 lib/systemd/system/open-iscsi.service.d
