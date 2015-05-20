@@ -1,9 +1,9 @@
 #!/usr/bin/dh-exec
-usr/iscsiadm                           /usr/bin
-usr/iscsid                             /usr/sbin
-usr/iscsistart                         /usr/sbin
-utils/iscsi_discovery                  /usr/sbin
-utils/iscsi-iname                      /usr/sbin
+usr/iscsiadm                           /sbin
+usr/iscsid                             /sbin
+usr/iscsistart                         /sbin
+utils/iscsi_discovery                  /sbin
+utils/iscsi-iname                      /sbin
 debian/initiatorname.iscsi             /etc/iscsi
 etc/iscsid.conf                        /etc/iscsi
 debian/open-iscsi.systemd-drop-in   => /lib/systemd/system/open-iscsi.service.d/fix-systemd-deps.conf

@@ -1,0 +1,5 @@
+sbin/iscsiadm usr/bin/iscsiadm
+sbin/iscsid usr/sbin/iscsid
+sbin/iscsistart usr/sbin/iscsistart
+sbin/iscsi_discovery usr/sbin/iscsi_discovery
+sbin/iscsi-iname usr/sbin/iscsi-iname

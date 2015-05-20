@@ -59,7 +59,7 @@ do_stop () {
 				log_warning_msg "iSCSI target without block devices found"
 				continue
 			fi
-			DOS_PARTITIONS="`awk "/^\/dev\/$BLOCK_DEV/ { print \\$2; }" < /proc/mounts`"
+			DOS_PARTITIONS="`grep "^/dev/$BLOCK_DEV" /proc/mounts | while read dev mp other ; do echo $mp ; done`"
 			for DEVICE in $DOS_PARTITIONS; do
 				#log_progress_msg $DEVICE
 				#echo $DEVICE

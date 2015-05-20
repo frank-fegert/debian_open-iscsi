@@ -3,17 +3,15 @@
 # Provides:          open-iscsi iscsi
 # Required-Start:    $network $local_fs
 # Required-Stop:     $network $local_fs sendsigs
-# Should-Start:      mountnfs-bootclean
-# Should-Stop:       umountnfs
 # Default-Start:     S
 # Default-Stop:      0 1 6
 # Short-Description: Starts and stops the iSCSI initiator services and logs in to default targets
 # Description:       Starts and stops the iSCSI initiator services and logs in to default targets
 ### END INIT INFO
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=/usr/sbin/iscsid
-ADM=/usr/bin/iscsiadm
+PATH=/sbin:/bin
+DAEMON=/sbin/iscsid
+ADM=/sbin/iscsiadm
 PIDFILE=/var/run/iscsid.pid
 NAMEFILE=/etc/iscsi/initiatorname.iscsi
 CONFIGFILE=/etc/iscsi/iscsid.conf
@@ -46,7 +44,7 @@ sanitychecks() {
                 echo "The iSCSI driver has not been correctly installed and cannot start."
                 echo
                 exit 1
-        elif [ -s $PIDFILE ] && kill -0 `head -1 $PIDFILE` >/dev/null ; then
+        elif [ -s $PIDFILE ] && kill -0 `sed -n 1p $PIDFILE` >/dev/null ; then
 		echo
                 echo "iSCSI daemon already running"
                 echo
@@ -64,12 +62,12 @@ sanitychecks() {
         # see if we need to generate a unique iSCSI InitiatorName
         # this should only happen if the
         if grep -q "^GenerateName=yes" $NAMEFILE ; then
-            if [ ! -x /usr/sbin/iscsi-iname ] ; then
-                echo "Error: /usr/sbin/iscsi-iname does not exist, driver was not successfully installed"
+            if [ ! -x /sbin/iscsi-iname ] ; then
+                echo "Error: /sbin/iscsi-iname does not exist, driver was not successfully installed"
                 exit 1;
             fi
             # Generate a unique InitiatorName and save it
-            INAME=`/usr/sbin/iscsi-iname -p iqn.1993-08.org.debian:01`
+            INAME=`/sbin/iscsi-iname -p iqn.1993-08.org.debian:01`
             if [ "$INAME" != "" ] ; then
                 echo "## DO NOT EDIT OR REMOVE THIS FILE!" > $NAMEFILE
                 echo "## If you remove this file, the iSCSI daemon will not start." >> $NAMEFILE
@@ -153,7 +151,7 @@ stoptargets() {
 	log_daemon_msg "Disconnecting iSCSI targets"
 	sync
 	# only logout if daemon is running, iscsiadm hangs otherwise
-        if [ -s $PIDFILE ] && kill -0 `head -1 $PIDFILE` >/dev/null ; then
+        if [ -s $PIDFILE ] && kill -0 `sed -n 1p $PIDFILE` >/dev/null ; then
 		$ADM -m node --logoutall=all
         fi
 
@@ -175,6 +173,7 @@ stop() {
 	fi
 
 	stoptargets
+
 	log_daemon_msg "Stopping iSCSI initiator service"
 	start-stop-daemon --stop --quiet --pidfile $PIDFILE --signal TERM --exec $DAEMON
 	rm -f $PIDFILE
