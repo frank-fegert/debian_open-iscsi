@@ -43,3 +43,25 @@ HANDLE_NETDEV=1
 # If any of these mountpoints contain spaces, please use the same
 # escaping as in /etc/fstab, i.e. replace the spaces with \040.
 EXCLUDE_MOUNTS_AT_SHUTDOWN=""
+
+
+
+# Don't logout from ANY iSCSI session on shutdown
+#
+# When shutting down, if the root filesystem is on iSCSI, open-iscsi
+# tries to determine which sessions are still required for the root
+# filesystem. By default, the host will still logout from all other
+# sessions.
+#
+# If you are running a very complicated setup of your root filesystem
+# (multiple mapping levels stacked on top of each other), it may be the
+# case that the autodetection logic doesn't work propery. You may then
+# enable this setting to keep around all iSCSI sessions.
+#
+# Note that /etc/iscsi/iscsi.initramfs must exist for this option to
+# have any effect at all.
+#
+# This was the default behavior in previous versions of this package
+# up to the version that shipped with Debian 8 (Jessie).
+#
+ISCSI_ROOT_KEEP_ALL_SESSIONS_AT_SHUTDOWN=0
