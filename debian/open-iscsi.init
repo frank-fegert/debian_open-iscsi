@@ -32,112 +32,24 @@ if [ ! -d /sys/class/ ]; then
   exit 0
 fi
 
-nodestartup_re='s/^node\.conn\[0]\.startup[ 	]*=[ 	]*//p'
-
 RETVAL=0
-
-sanitychecks() {
-        # Do sanity checks before we start..
-        if [ ! -e "$CONFIGFILE" ]; then
-                echo
-                echo "Error: configuration file $CONFIGFILE is missing!"
-                echo "The iSCSI driver has not been correctly installed and cannot start."
-                echo
-                exit 1
-        elif [ -s $PIDFILE ] && kill -0 `sed -n 1p $PIDFILE` >/dev/null ; then
-		echo
-                echo "iSCSI daemon already running"
-                echo
-                exit 0
-        fi
-
-        if [ ! -f $NAMEFILE ] ; then
-            echo
-            echo "Error: InitiatorName file $NAMEFILE is missing!"
-            echo "The iSCSI driver has not been correctly installed and cannot start."
-            echo
-            exit 1
-        fi
-
-        # see if we need to generate a unique iSCSI InitiatorName
-        # this should only happen if the
-        if grep -q "^GenerateName=yes" $NAMEFILE ; then
-            if [ ! -x /sbin/iscsi-iname ] ; then
-                echo "Error: /sbin/iscsi-iname does not exist, driver was not successfully installed"
-                exit 1;
-            fi
-            # Generate a unique InitiatorName and save it
-            INAME=`/sbin/iscsi-iname -p iqn.1993-08.org.debian:01`
-            if [ "$INAME" != "" ] ; then
-                echo "## DO NOT EDIT OR REMOVE THIS FILE!" > $NAMEFILE
-                echo "## If you remove this file, the iSCSI daemon will not start." >> $NAMEFILE
-                echo "## If you change the InitiatorName, existing access control lists" >> $NAMEFILE
-                echo "## may reject this initiator.  The InitiatorName must be unique">> $NAMEFILE
-                echo "## for each iSCSI initiator.  Do NOT duplicate iSCSI InitiatorNames." >> $NAMEFILE
-                printf "InitiatorName=$INAME\n"  >> $NAMEFILE
-                chmod 600 $NAMEFILE
-            else
-                echo "Error: failed to generate an iSCSI InitiatorName, driver cannot start."
-                echo
-                exit 1;
-            fi
-        fi
-
-        # make sure there is a valid InitiatorName for the driver
-        if ! grep -q "^InitiatorName=[^ \t\n]" $NAMEFILE ; then
-            echo
-            echo "Error: $NAMEFILE does not contain a valid InitiatorName."
-            echo "The iSCSI driver has not been correctly installed and cannot start."
-            echo
-            exit 1
-        fi
-}
 
 start() {
 	log_daemon_msg "Starting iSCSI initiator service" "iscsid"
-	sanitychecks
-	modprobe -q iscsi_tcp 2>/dev/null || :
-	modprobe -q ib_iser 2>/dev/null || :
-	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON
+	if ! /lib/open-iscsi/startup-checks.sh ; then
+		log_end_msg 1
+		exit 1
+	fi
+
+	start-stop-daemon --oknodo --start --quiet --pidfile $PIDFILE --exec $DAEMON
 	RETVAL=$?
 	ln -s $PIDFILE $OMITDIR
 	log_end_msg $RETVAL
 
 	starttargets
 
-	udevadm settle || true;
-
-
-	# Handle iSCSI LVM devices
-	if [ ! -x "/sbin/vgchange" -a -n "$LVMGROUPS" ]; then
-		log_warning_msg "LVM2 tools are not installed, not honouring LVMGROUPS."
-		LMVGROUPS=""
-	fi
-
-	if [ -n "$LVMGROUPS" ]; then
-		log_daemon_msg "Activating iSCSI volume groups"
-		for vg in "$LVMGROUPS"; do
-			log_progress_msg $vg
-			vgchange --available=y $vg
-		done
-		log_end_msg 0
-	fi
-
-	# Now let's mount
-	log_daemon_msg "Mounting network filesystems"
-	MOUNT_RESULT=1
-	if mount -a -O _netdev >/dev/null 2>&1; then
-		MOUNT_RESULT=0
-	fi
-	log_end_msg $MOUNT_RESULT
-
-	# Also enable any new swap devices (network) that popped up.
-	log_daemon_msg "Enabling network swap devices"
-	SWAP_RESULT=1
-	if swapon -a -e >/dev/null 2>&1; then
-		SWAP_RESULT=0
-	fi
-	log_end_msg $SWAP_RESULT
+	# activate LVM, mount filesystems, etc.
+	/lib/open-iscsi/activate-storage.sh
 }
 
 starttargets() {

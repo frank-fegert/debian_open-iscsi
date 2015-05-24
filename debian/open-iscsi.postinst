@@ -13,6 +13,17 @@ update_initramfs()
 
 case "$1" in
     configure)
+        # We switched over to modules-load.d logic, so we have to take
+        # care of this in postinst now.
+        MODULES_FILE=/lib/modules-load.d/open-iscsi.conf
+        if [ -f /etc/modules-load.d/open-iscsi.conf ] ; then
+            MODULES_FILE=/etc/modules-load.d/open-iscsi.conf
+        fi
+        grep '^[^#]' $MODULES_FILE | while read module args ; do
+            [ "$module" ] || continue
+            modprobe $module $args >/dev/null 2>&1 || true
+        done
+
 	# Move old configuration from /etc/ into /etc/iscsi/
 	# But only if configuration in /etc/iscsi is untouched
 	
