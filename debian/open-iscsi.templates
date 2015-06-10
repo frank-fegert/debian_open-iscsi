@@ -1,3 +1,27 @@
+Template: open-iscsi/remove_even_with_active_sessions
+Type: boolean
+_Description: Do you want to proceed with removing open-iscsi?
+ There are currently active iSCSI sessions. If you remove open-iscsi
+ now this may lead to data loss and/or hang your system at shutdown.
+ .
+ DO NOT DO THIS IF YOUR ROOT FILESYSTEM IS ON ISCSI!
+ .
+ If you do proceed, open-iscsi will try to unmount all filesystems on
+ iSCSI and logout from current sessions. If that fails (because a
+ filesystem is still in use), the kernel will keep open the current
+ iSCSI sessions, but not perform any recovery in case there is an
+ interruption of the network connection (or the target is rebooted
+ etc.).
+ .
+ If you really want to remove open-iscsi, it is advisable to abort here
+ and to first stop open-iscsi:
+   service open-iscsi stop
+ If that did not clean up everything, manually umount all filesystems
+ that are on iSCSI, manually dismantle the storage stack and only then
+ logout from all iSCSI sessions:
+   iscsiadm -m node --logoutall=all
+ At that point, it should be safe to remove this package.
+
 Template: open-iscsi/upgrade_even_with_failed_sessions
 Type: boolean
 _Description: Do you want to proceed with upgrading open-iscsi?
