@@ -1,0 +1,113 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: open-iscsi\n"
+"Report-Msgid-Bugs-To: open-iscsi@packages.debian.org\n"
+"POT-Creation-Date: 2015-06-11 00:50+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../open-iscsi.templates:1001
+msgid "Do you want to proceed with removing open-iscsi?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../open-iscsi.templates:1001
+msgid ""
+"There are currently active iSCSI sessions. If you remove open-iscsi now this "
+"may lead to data loss and/or hang your system at shutdown."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../open-iscsi.templates:1001
+msgid "DO NOT DO THIS IF YOUR ROOT FILESYSTEM IS ON ISCSI!"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../open-iscsi.templates:1001
+msgid ""
+"If you do proceed, open-iscsi will try to unmount all filesystems on iSCSI "
+"and logout from current sessions. If that fails (because a filesystem is "
+"still in use), the kernel will keep open the current iSCSI sessions, but not "
+"perform any recovery in case there is an interruption of the network "
+"connection (or the target is rebooted etc.)."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../open-iscsi.templates:1001
+msgid ""
+"If you really want to remove open-iscsi, it is advisable to abort here and "
+"to first stop open-iscsi:\n"
+"  service open-iscsi stop\n"
+"If that did not clean up everything, manually umount all filesystems that "
+"are on iSCSI, manually dismantle the storage stack and only then logout from "
+"all iSCSI sessions:\n"
+"  iscsiadm -m node --logoutall=all\n"
+"At that point, it should be safe to remove this package."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../open-iscsi.templates:2001
+msgid "Do you want to proceed with upgrading open-iscsi?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../open-iscsi.templates:2001
+msgid ""
+"There are currently failed iSCSI sessions. Upgrading open-iscsi MAY cause "
+"data loss."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../open-iscsi.templates:2001
+msgid ""
+"If you do not proceed, the preinstallation script will be aborted and you "
+"will have the option to manually recover the iSCSI sessions. (Note that "
+"aborting an upgrade is problematic if you are dist-upgrading your entire "
+"system.) You may also recover the iSCSI sessions manually while keeping this "
+"prompt open and then choose to proceed. Or you may choose to proceed "
+"directly, after which iscsid will be restarted and session recovery will be "
+"attempted once more."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../open-iscsi.templates:3001
+msgid "iSCSI recovery error on upgrade"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../open-iscsi.templates:3001
+msgid ""
+"iscsid was restarted, but couldn't recover all iSCSI sessions. This is bad "
+"and could lead to DATA LOSS. Please check your system and kernel logs to "
+"determine the cause of the issue."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../open-iscsi.templates:3001
+msgid ""
+"Please DO NOT acknowledge this note until you have fixed the problem from a "
+"separate login shell."
+msgstr ""
