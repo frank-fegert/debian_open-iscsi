@@ -26,6 +26,9 @@ case "$1" in
 
 	# Move old configuration from /etc/ into /etc/iscsi/
 	# But only if configuration in /etc/iscsi is untouched
+	# (FIXME: should this be removed? this is ancient and was
+	# already in Squeeze's postinst - and we don't really need to
+	# support direct upgrades from Lenny (5) to Stretch (9).)
 	
         if [ -f /etc/initiatorname.iscsi ] ; then
             if grep -q "^GenerateName=yes" /etc/iscsi/initiatorname.iscsi ; then
@@ -34,7 +37,9 @@ case "$1" in
 	    fi
 	fi
 
-	# Obsolete (only open-iscsi 1.0)
+	# Obsolete: only open-iscsi 1.0, never even shipped with any
+	# stable Debian release. But postinst up to Jessie still
+	# created this directory, so keep this until at least Stretch.
 	if [ -d /var/lib/open-iscsi ]; then
 		rmdir --ignore-fail-on-non-empty /var/lib/open-iscsi
 	fi
