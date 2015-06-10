@@ -1,0 +1,23 @@
+Template: open-iscsi/upgrade_even_with_failed_sessions
+Type: boolean
+_Description: Do you want to proceed with upgrading open-iscsi?
+ There are currently failed iSCSI sessions. Upgrading open-iscsi MAY
+ cause data loss.
+ .
+ If you do not proceed, the preinstallation script will be aborted and
+ you will have the option to manually recover the iSCSI sessions. (Note
+ that aborting an upgrade is problematic if you are dist-upgrading your
+ entire system.) You may also recover the iSCSI sessions manually while
+ keeping this prompt open and then choose to proceed. Or you may choose
+ to proceed directly, after which iscsid will be restarted and session
+ recovery will be attempted once more.
+
+Template: open-iscsi/upgrade_recovery_error
+Type: note
+_Description: iSCSI recovery error on upgrade
+ iscsid was restarted, but couldn't recover all iSCSI sessions. This is
+ bad and could lead to DATA LOSS. Please check your system and kernel
+ logs to determine the cause of the issue.
+ .
+ Please DO NOT acknowledge this note until you have fixed the problem
+ from a separate login shell.

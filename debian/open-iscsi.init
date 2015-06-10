@@ -1,12 +1,13 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          open-iscsi iscsi
-# Required-Start:    $network $local_fs
-# Required-Stop:     $network $local_fs sendsigs
+# Required-Start:    $network $local_fs iscsid
+# Required-Stop:     $network $local_fs iscsid sendsigs
 # Default-Start:     S
 # Default-Stop:      0 1 6
-# Short-Description: Starts and stops the iSCSI initiator services and logs in to default targets
-# Description:       Starts and stops the iSCSI initiator services and logs in to default targets
+# Short-Description: Login to default iSCSI targets
+# Description:       Login to default iSCSI targets at boot and log out
+#                    of all iSCSI targets at shutdown.
 ### END INIT INFO
 
 PATH=/sbin:/bin
@@ -35,16 +36,10 @@ fi
 RETVAL=0
 
 start() {
-	log_daemon_msg "Starting iSCSI initiator service" "iscsid"
-	if ! /lib/open-iscsi/startup-checks.sh ; then
-		log_end_msg 1
+	if ! [ -s $PIDFILE ] || ! kill -0 `sed -n 1p $PIDFILE` >/dev/null ; then
+		log_failure_msg "iSCSI initiator daemon not started: not logging in to default targets"
 		exit 1
 	fi
-
-	start-stop-daemon --oknodo --start --quiet --pidfile $PIDFILE --exec $DAEMON
-	RETVAL=$?
-	ln -s $PIDFILE $OMITDIR
-	log_end_msg $RETVAL
 
 	starttargets
 
@@ -75,8 +70,10 @@ stop() {
 	# that, regardless of whether root is on iSCSI, umountiscsi.sh
 	# will exclude it - and even if that shouldn't work, the mount
 	# point will be busy)
+	log_daemon_msg "Umounting iSCSI filesystems"
 	/lib/open-iscsi/umountiscsi.sh
 	umount_exit_status=$?
+	log_end_msg $umount_exit_status
 
 	if [ $umount_exit_status -ne 0 ]; then
 		log_failure_msg "Couldn't unmount all iSCSI devices. not logging out from any target."
@@ -84,21 +81,6 @@ stop() {
 	fi
 
 	stoptargets
-
-	# Don't stop iscsid if we're on initramfs or we had some
-	# excluded sessions. We could actually stop it, it's not
-	# required for the kernel to continue working with active
-	# sessions, but it doesn't hurt to leave it running.
-	# (Note that on systemd systems, it will be killed
-	# regardless.)
-	if [ ! -f /etc/iscsi/iscsi.initramfs ] && 
-		( [ ! -f /run/open-iscsi/shutdown-keep-sessions ] || [ -z "$(cat /run/open-iscsi/shutdown-keep-sessions)" ] )
-	then
-		log_daemon_msg "Stopping iSCSI initiator service"
-		start-stop-daemon --stop --quiet --pidfile $PIDFILE --signal TERM --exec $DAEMON
-		rm -f $PIDFILE
-		log_end_msg 0
-	fi
 }
 
 restart() {

@@ -12,6 +12,7 @@ Homepage: http://www.open-iscsi.org/
 Package: open-iscsi
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, udev
+Pre-Depends: debconf | debconf-2.0
 Description: High performance, transport independent iSCSI implementation
  Open-iSCSI is a high-performance, transport independent, multi-platform
  implementation of RFC3720 iSCSI
