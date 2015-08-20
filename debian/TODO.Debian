@@ -1,0 +1,12 @@
+TODO for package open-iscsi
+---------------------------
+
+ - find a way to make event-based activation work on sysvinit systems
+   and then deprecate the current LVM hacks
+
+ - make debian/copyright DEP-5 compatible
+
+ - notify translators of debconf templates once the package has
+   stabilized a little
+
+ - (send upstream): fix hyphen-used-as-minus-sign lintian notices
