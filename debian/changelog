@@ -1,5 +1,6 @@
 open-iscsi (2.0.873+git0.3b4b4500-10) unstable; urgency=low
 
+  [ Christian Seiler ]
   * [553ee17] Move binaries from /usr to /.
   * [b4da874] Add lintian overrides for iscsid.conf permissions
     being 0600.
@@ -27,8 +28,13 @@ open-iscsi (2.0.873+git0.3b4b4500-10) unstable; urgency=low
   * [1d53892] postrm: remove /etc/iscsi database on purge
   * [62c0cd2] Add native systemd service files
   * [dafe2e3] Add TODO.Debian
+  * [13bd86a] Update changelog for release.
 
- -- Christian Seiler <christian@iwakd.de>  Thu, 20 Aug 2015 13:59:58 +0200
+  [ Ritesh Raj Sarraf ]
+  * [9bcebd0] Use standard pathfind from Debian policy manual
+    in postinst
+
+ -- Christian Seiler <christian@iwakd.de>  Thu, 20 Aug 2015 21:13:32 +0200
 
 open-iscsi (2.0.873+git0.3b4b4500-9) unstable; urgency=medium
 
