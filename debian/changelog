@@ -1,3 +1,35 @@
+open-iscsi (2.0.873+git0.3b4b4500-10) unstable; urgency=low
+
+  * [553ee17] Move binaries from /usr to /.
+  * [b4da874] Add lintian overrides for iscsid.conf permissions
+    being 0600.
+  * [4f33a8d] Patch build system to fully respect Debian build flags.
+    (Closes: #764409)
+  * [295ee0b] Remove obsolete /var/lib/open-iscsi directory.
+  * [e86e5c1] postinst: Move startup of daemon after auto-generated
+    debhelper commands
+  * [4d05783] Move umountiscsi.sh to /lib/open-iscsi.
+  * [deb3533] Rewrite umountiscsi.sh, make it more robust
+    (Closes: #775838)
+  * [9ffbe41] Improve shutdown logic and auto-exclude vital sessions
+    from logout
+  * [592d3d1] Factor out startup logic from init script
+  * [6947cef] Explain old behavior of postinst in form of comments.
+  * [f84a986] Restart iscsid on upgrades, separate init scripts.
+    (Closes: #501321)
+  * [421400b] Prompt before removing if sessions are still active.
+  * [c703bad] debconf: use po-debconf to make warnings and notices
+    translateable.
+  * [3b03a6c] prerm: warn the user about downgrades that will
+    definitely break the system
+  * [62e90af] Add NEWS file to describe the most important changes
+    for administrators.
+  * [1d53892] postrm: remove /etc/iscsi database on purge
+  * [62c0cd2] Add native systemd service files
+  * [dafe2e3] Add TODO.Debian
+
+ -- Christian Seiler <christian@iwakd.de>  Thu, 20 Aug 2015 13:59:58 +0200
+
 open-iscsi (2.0.873+git0.3b4b4500-9) unstable; urgency=medium
 
   [ Christian Seiler ]
