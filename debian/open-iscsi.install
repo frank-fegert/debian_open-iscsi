@@ -6,7 +6,6 @@ utils/iscsi_discovery                  /sbin
 utils/iscsi-iname                      /sbin
 debian/initiatorname.iscsi             /etc/iscsi
 etc/iscsid.conf                        /etc/iscsi
-debian/open-iscsi.systemd-drop-in   => /lib/systemd/system/open-iscsi.service.d/fix-systemd-deps.conf
 debian/extra/initramfs.hook         => /usr/share/initramfs-tools/hooks/iscsi
 debian/extra/initramfs.local-top    => /usr/share/initramfs-tools/scripts/local-top/iscsi
 debian/extra/umountiscsi.sh            /lib/open-iscsi

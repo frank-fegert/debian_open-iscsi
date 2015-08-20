@@ -12,7 +12,7 @@ export DEB_CFLAGS_MAINT_APPEND = -Wall
 export OPTFLAGS = $(CPPFLAGS) $(CFLAGS)
 
 %:
-	dh $@ --with autotools_dev,autoreconf
+	dh $@ --with autotools_dev,autoreconf,systemd
 
 DEB_UPSTREAM_VERSION := $(shell dpkg-parsechangelog | sed -rne 's,^Version: ([^-]+).*,\1,p')
 
@@ -51,3 +51,10 @@ override_dh_fixperms:
 override_dh_installinit:
 	dh_installinit --no-start --name=iscsid
 	dh_installinit --no-start
+
+override_dh_systemd_enable:
+	dh_systemd_enable --name=iscsid
+	dh_systemd_enable
+
+override_dh_systemd_start:
+	dh_systemd_start -popen-iscsi --no-restart-on-upgrade --no-start iscsid.service open-iscsi.service
