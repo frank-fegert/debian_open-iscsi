@@ -26,7 +26,22 @@ case "$1" in
         invoke-rc.d iscsid stop || exit $?
     ;;
     
-    upgrade|deconfigure)
+    upgrade)
+        if dpkg --compare-versions "$2" le "2.0.873+git0.3b4b4500-9"; then
+            # The user is attempting to downgrade, ask them if they
+            # really want to do this.
+            db_reset open-iscsi/downgrade_and_break_system || true
+            db_input critical open-iscsi/downgrade_and_break_system || true
+            db_go
+            db_get open-iscsi/downgrade_and_break_system
+            if [ "$RET" = "false" ] ; then
+                echo "Aborting prerm due to user request." >&2
+                exit 1
+            fi
+        fi
+    ;;
+
+    deconfigure)
     ;;
 
     failed-upgrade)

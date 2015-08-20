@@ -45,3 +45,14 @@ _Description: iSCSI recovery error on upgrade
  .
  Please DO NOT acknowledge this note until you have fixed the problem
  from a separate login shell.
+
+Template: open-iscsi/downgrade_and_break_system
+Type: boolean
+_Description: Do you really want to downgrade open-iscsi?
+ You are trying to downgrade open-iscsi. Because of changes between the
+ version you are downgrading to and the version currently installed,
+ this downgrade WILL BREAK YOUR SYSTEM.
+ .
+ If you really want to downgrade, please follow the following procedure
+ instead: umount all iSCSI file systems, log out of all iSCSI sessions,
+ back up /etc/iscsi, purge open-iscsi and reinstall the older version.
