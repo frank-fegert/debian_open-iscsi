@@ -15,4 +15,4 @@ ExecStart=/sbin/iscsid
 ExecStop=/sbin/iscsiadm -k 0 2
 
 [Install]
-WantedBy=remote-fs.target
+WantedBy=sysinit.target

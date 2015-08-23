@@ -26,5 +26,5 @@ ExecStop=/bin/sync
 ExecStop=/lib/open-iscsi/logout-all.sh
 
 [Install]
-WantedBy=remote-fs.target
+WantedBy=sysinit.target
 Alias=iscsi.service
