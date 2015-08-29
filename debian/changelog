@@ -1,3 +1,13 @@
+open-iscsi (2.0.873+git0.3b4b4500-11) unstable; urgency=low
+
+  [ Christian Seiler ]
+  * [320f3d8] boot: wait long enough for multipath to create mappings
+  * [745f06e] Hook up native services to sysinit.target instead of
+    remote-fs.target. Thanks to Felipe Sateler for bringing this to our
+    attention
+
+ -- Christian Seiler <christian@iwakd.de>  Sat, 29 Aug 2015 13:39:52 +0530
+
 open-iscsi (2.0.873+git0.3b4b4500-10) unstable; urgency=low
 
   [ Christian Seiler ]
