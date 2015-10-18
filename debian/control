@@ -13,21 +13,23 @@ Package: open-iscsi
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, udev
 Pre-Depends: debconf | debconf-2.0
-Description: High performance, transport independent iSCSI implementation
+Description: iSCSI initiator tools
  Open-iSCSI is a high-performance, transport independent, multi-platform
- implementation of RFC3720 iSCSI
+ implementation of the RFC3720 Internet Small Computer Systems Interface
+ (iSCSI).
  .
- Open-iSCSI is partitioned into user and kernel parts where the kernel
- portion implements iSCSI data path (i.e. iSCSI Read and iSCSI Write)
- The userspace contains the entire control plane consisting of:
-  * Configuration Manager
-  * iSCSI Discovery, Login and Logout processing
-  * Connection level error processing
-  * Nop-In and Nop-Out handling
-  * Text processing, iSNS, SLP, Radius et cetera (future)
+ Open-iSCSI is partitioned into user and kernel parts, where the kernel
+ portion implements the iSCSI data path (i.e. iSCSI Read and iSCSI Write).
+ The userspace contains the entire control plane:
+  * Configuration Manager;
+  * iSCSI Discovery;
+  * Login and Logout processing;
+  * Connection level error processing;
+  * Nop-In and Nop-Out handling;
+  * (in the future) Text processing, iSNS, SLP, Radius, etc.
  .
- The userspace component consists of a daemon, iscsid and a management
- utility, iscsiadm
+ This package includes a daemon, iscsid, and a management utility,
+ iscsiadm.
 
 Package: open-iscsi-udeb
 # Note: the (virtual) udeb package scsi-modules (provided by different
@@ -40,6 +42,7 @@ Package-Type: udeb
 Depends: ${shlibs:Depends}, ${misc:Depends}, scsi-modules, libnss-files-udeb
 Description: Configure iSCSI
  Open-iSCSI is a high-performance, transport independent, multi-platform
- implementation of RFC3720 iSCSI.
+ implementation of the RFC3720 Internet Small Computer Systems Interface
+ (iSCSI).
  .
  This is the minimal package (udeb) used by debian-installer.
