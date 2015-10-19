@@ -1,0 +1,3 @@
+Tests: install sysvinit-install
+Restrictions: needs-root isolation-machine breaks-testbed
+Depends:

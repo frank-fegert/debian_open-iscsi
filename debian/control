@@ -8,6 +8,7 @@ Standards-Version: 3.9.6
 Vcs-Git: git://anonscm.debian.org/pkg-iscsi/open-iscsi.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-iscsi/open-iscsi.git
 Homepage: http://www.open-iscsi.org/
+Testsuite: autopkgtest
 
 Package: open-iscsi
 Architecture: any
