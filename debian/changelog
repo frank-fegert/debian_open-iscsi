@@ -1,3 +1,30 @@
+open-iscsi (2.0.873+git0.3b4b4500-12) unstable; urgency=low
+
+  [ Christian Perrier ]
+  * [7f5ce40] Debconf templates and debian/control reviewed by the
+    debian-l10n-english team as part of the Smith review project.
+    (Closes: #797860)
+
+  [ Debconf translation updates ]
+  * [bfd526f] Czeck (Michal Simunek). (Closes: #801127)
+  * [dbc83a6] French (Julien Patriarca). (Closes: #801181)
+  * [dcc7c4d] Russian (Yuri Kozlov). (Closes: #801625)
+  * [04acc7f] Spanish (Camaleón). (Closes: #801686)
+  * [dfd68ca] Dutch (Frans Spiesschaert). (Closes: #801706)
+  * [cd920e1] Portuguese (Américo Monteiro). (Closes: #801731)
+  * [ff0c87f] Italian (Beatrice Torracca). (Closes: #801875)
+  * [df6eb44] Danish (Joe Hansen). (Closes: #801888)
+  * [d51bf4a] German (Chris Leick). (Closes: #801903)
+
+  [ Christian Seiler ]
+  * [c030d08] Call startup-checks.sh as ExecStartPre= from
+    iscsid.service. (Fix regression in -10.)
+  * [3d41a1e] Use invoke-rc.d start and not restart upon initial
+    installation. (Fix regression in -10.)
+  * [1e94bfd] Add simple autopkgtests. (Closes: #710148)
+
+ -- Christian Seiler <christian@iwakd.de>  Mon, 19 Oct 2015 23:46:01 +0200
+
 open-iscsi (2.0.873+git0.3b4b4500-11) unstable; urgency=low
 
   [ Christian Seiler ]
