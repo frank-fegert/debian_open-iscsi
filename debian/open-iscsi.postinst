@@ -196,7 +196,11 @@ if [ "$1" = configure ] ; then
         #       open fds.
         invoke-rc.d iscsid start 3>&-
     else
-        invoke-rc.d iscsid restart 3>&-
+        if [ -n "$2" ]; then
+            invoke-rc.d iscsid restart 3>&-
+        else
+            invoke-rc.d iscsid start 3>&-
+        fi
     fi
 
     RETRIES=0
