@@ -61,6 +61,13 @@ case "$1" in
 	    fi
 	fi
 
+	# Compatibility symlinks
+	for file in iscsid iscsi_discovery iscsi-iname iscsistart; do
+		if [ ! -e /usr/sbin/$file ]; then
+			ln -s /sbin/$file /usr/sbin/$file
+		fi
+	done
+
 	# Obsolete: only open-iscsi 1.0, never even shipped with any
 	# stable Debian release. But postinst up to Jessie still
 	# created this directory, so keep this until at least Stretch.
