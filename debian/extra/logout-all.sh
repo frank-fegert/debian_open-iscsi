@@ -7,7 +7,7 @@
 #
 
 ISCSIADM=/sbin/iscsiadm
-PIDFILE=/var/run/iscsid.pid
+PIDFILE=/run/iscsid.pid
 
 ISCSI_ROOT_KEEP_ALL_SESSIONS_AT_SHUTDOWN=0
 if [ -f /etc/default/open-iscsi ]; then

@@ -10,7 +10,7 @@ Before=shutdown.target
 
 [Service]
 Type=forking
-PIDFile=/var/run/iscsid.pid
+PIDFile=/run/iscsid.pid
 ExecStartPre=/lib/open-iscsi/startup-checks.sh
 ExecStart=/sbin/iscsid
 ExecStop=/sbin/iscsiadm -k 0 2

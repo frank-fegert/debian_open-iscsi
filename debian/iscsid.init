@@ -21,7 +21,7 @@ fi
 
 DESC="iSCSI initiator daemon"
 DAEMON=/sbin/iscsid
-PIDFILE=/var/run/iscsid.pid
+PIDFILE=/run/iscsid.pid
 OMITDIR=/run/sendsigs.omit.d
 
 do_start_prepare() {

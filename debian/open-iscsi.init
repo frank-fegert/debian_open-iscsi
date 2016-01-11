@@ -13,7 +13,7 @@
 PATH=/sbin:/bin
 DAEMON=/sbin/iscsid
 ADM=/sbin/iscsiadm
-PIDFILE=/var/run/iscsid.pid
+PIDFILE=/run/iscsid.pid
 NAMEFILE=/etc/iscsi/initiatorname.iscsi
 CONFIGFILE=/etc/iscsi/iscsid.conf
 OMITDIR=/run/sendsigs.omit.d
