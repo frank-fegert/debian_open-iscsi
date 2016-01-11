@@ -4,7 +4,6 @@ usr/iscsid                             /sbin
 usr/iscsistart                         /sbin
 utils/iscsi_discovery                  /sbin
 utils/iscsi-iname                      /sbin
-debian/initiatorname.iscsi             /etc/iscsi
 etc/iscsid.conf                        /etc/iscsi
 debian/extra/initramfs.hook         => /usr/share/initramfs-tools/hooks/iscsi
 debian/extra/initramfs.local-top    => /usr/share/initramfs-tools/scripts/local-top/iscsi

@@ -75,6 +75,30 @@ case "$1" in
 		rmdir --ignore-fail-on-non-empty /var/lib/open-iscsi
 	fi
 
+        # generate a unique iSCSI InitiatorName
+        NAMEFILE=/etc/iscsi/initiatorname.iscsi
+        if [ ! -e $NAMEFILE ] && [ -z "$2" ] ; then
+            if [ ! -x /sbin/iscsi-iname ] ; then
+                echo "Error: /sbin/iscsi-iname does not exist, driver was not successfully installed"
+                exit 1;
+            fi
+            # Generate a unique InitiatorName and save it
+            INAME=$(/sbin/iscsi-iname -p iqn.1993-08.org.debian:01)
+            if [ -n "$INAME" ] ; then
+                echo "## DO NOT EDIT OR REMOVE THIS FILE!" > $NAMEFILE
+                echo "## If you remove this file, the iSCSI daemon will not start." >> $NAMEFILE
+                echo "## If you change the InitiatorName, existing access control lists" >> $NAMEFILE
+                echo "## may reject this initiator.  The InitiatorName must be unique">> $NAMEFILE
+                echo "## for each iSCSI initiator.  Do NOT duplicate iSCSI InitiatorNames." >> $NAMEFILE
+                printf "InitiatorName=%s\n" "$INAME" >> $NAMEFILE
+                chmod 600 $NAMEFILE
+            else
+                echo "Error: failed to generate an iSCSI InitiatorName, driver cannot start."
+                echo
+                exit 1;
+            fi
+        fi
+
 	update_initramfs
     ;;
 
