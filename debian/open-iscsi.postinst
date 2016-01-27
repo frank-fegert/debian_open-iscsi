@@ -3,28 +3,6 @@
 . /usr/share/debconf/confmodule
 set -e
 
-pathfind() {
-    OLDIFS="$IFS"
-    IFS=:
-    for p in $PATH; do
-        if [ -x "$p/$*" ]; then
-            IFS="$OLDIFS"
-            return 0
-        fi
-    done
-    IFS="$OLDIFS"
-    return 1
-}
-
-update_initramfs()
-{
-    if pathfind update-initramfs  && \
-       [ -e /etc/initramfs-tools/initramfs.conf ] && \
-       [ -e /etc/iscsi/iscsi.initramfs ]; then
-        update-initramfs -u
-    fi
-}
-
 restore_old_timeouts()
 {
     if [ -s /run/open-iscsi/upgrade/restore_old_timeouts ] ; then
@@ -94,8 +72,6 @@ case "$1" in
                 exit 1;
             fi
         fi
-
-	update_initramfs
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
