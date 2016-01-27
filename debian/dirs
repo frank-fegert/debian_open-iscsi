@@ -1,8 +1,5 @@
-usr/bin
-usr/sbin
 etc/init.d
 etc/default
-etc
 etc/iscsi
 etc/network/if-up.d
 usr/share/initramfs-tools/hooks/
