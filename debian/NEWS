@@ -41,8 +41,8 @@ open-iscsi (2.0.873+git0.3b4b4500-10) unstable; urgency=low
   If you are running sysvinit and have HANDLE_NETDEV=0, please note
   that this flag is now also checked at bootup, i.e. filesystems with
   _netdev will not be mounted automatically at boot anymore by
-  open-iscsi. (Perviously, this flag was only checked at shutdown.)
-  On systemd systems, HANDLE_NETDEV is now copmletely ignored, as
+  open-iscsi. (Previously, this flag was only checked at shutdown.)
+  On systemd systems, HANDLE_NETDEV is now completely ignored, as
   systemd handles mounting of network filesystems directly.
 
 
