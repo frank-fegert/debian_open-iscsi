@@ -78,12 +78,8 @@ case "$1" in
         # generate a unique iSCSI InitiatorName
         NAMEFILE=/etc/iscsi/initiatorname.iscsi
         if [ ! -e $NAMEFILE ] && [ -z "$2" ] ; then
-            if [ ! -x /sbin/iscsi-iname ] ; then
-                echo "Error: /sbin/iscsi-iname does not exist, driver was not successfully installed"
-                exit 1;
-            fi
             # Generate a unique InitiatorName and save it
-            INAME=$(/sbin/iscsi-iname -p iqn.1993-08.org.debian:01)
+            INAME=$(iscsi-iname -p iqn.1993-08.org.debian:01)
             if [ -n "$INAME" ] ; then
                 echo "## DO NOT EDIT OR REMOVE THIS FILE!" > $NAMEFILE
                 echo "## If you remove this file, the iSCSI daemon will not start." >> $NAMEFILE
