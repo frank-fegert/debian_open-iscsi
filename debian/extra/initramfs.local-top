@@ -137,6 +137,7 @@ do_iscsi_login ()
 					echo "DHCPLEASETIME='${DHCPLEASETIME}'"
 					echo "DOMAINSEARCH=''"
 				} > "/run/net-${DEVICE}.conf"
+				echo "${DEVICE}" > /run/initramfs/open-iscsi.interface
 				fi
 				continue
 				;;
@@ -159,6 +160,20 @@ do_iscsi_login ()
 	# could be other network interfaces that need to be configured
 	# manually
 	configure_networking
+
+	# Save network device we configured via configure_networking, but only
+	# if we didn't already get one from autoconfiguration (then we always
+	# prefer that).
+	if ! [ -e /run/initramfs/open-iscsi.interface ] ; then
+		if [ -z "${DEVICE}" ] || ! [ -e "/run/net-${DEVICE}.conf" ] ; then
+			for i in /run/net-*.conf ; do
+				[ -e "${i}" ] && { . "${i}" ; break ; }
+			done
+		fi
+		if [ -n "${DEVICE}" ] ; then
+			echo "${DEVICE}" > /run/initramfs/open-iscsi.interface
+		fi
+	fi
 
 	modprobe iscsi_tcp
 	modprobe crc32c
