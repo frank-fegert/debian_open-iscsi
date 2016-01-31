@@ -11,9 +11,10 @@ Before=shutdown.target
 [Service]
 Type=oneshot
 RemainAfterExit=true
-# iscsiadm --login will return 21 if no nodes are
-# configured
-SuccessExitStatus=21
+# iscsiadm --login will return 21 if no nodes are configured,
+# and 15 if a session is alread logged in (which we do not
+# consider an error)
+SuccessExitStatus=15 21
 # iscsiadm will only work if iscsid is running. But we can't use a
 # Requires= dependency, since restarts of iscsid would then be
 # propagated to this service - and that would cause all sorts of
