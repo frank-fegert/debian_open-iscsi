@@ -58,3 +58,14 @@ override_dh_systemd_enable:
 
 override_dh_systemd_start:
 	dh_systemd_start -popen-iscsi --no-restart-on-upgrade --no-start iscsid.service open-iscsi.service
+
+# The following is taken from the initramfs-tools package. (We recommend
+# busybox in the initramfs because otherwise we don't have access to the
+# ip utility to set the default gateway after iscsistart -N is done.)
+# On Debian we can use either busybox or busybox-static, but on Ubuntu
+# and derivatives only busybox-initramfs will work.
+BUSYBOX_PACKAGES := $(shell if dpkg-vendor --derives-from ubuntu; then echo busybox-initramfs; else echo busybox busybox-static; fi)
+
+override_dh_gencontrol:
+	echo >> debian/open-iscsi.substvars "busybox:Recommends=$(wordlist 2,100,$(BUSYBOX_PACKAGES:%=| %))"
+	dh_gencontrol

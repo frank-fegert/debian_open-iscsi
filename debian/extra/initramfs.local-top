@@ -138,6 +138,13 @@ do_iscsi_login ()
 					echo "DOMAINSEARCH=''"
 				} > "/run/net-${DEVICE}.conf"
 				echo "${DEVICE}" > /run/initramfs/open-iscsi.interface
+				# iscsistart -N doesn't set the default gateway. Therefore,
+				# we need to add it ourselves. However, the ip command is
+				# only available if we use busybox in the initramfs (it's
+				# in open-iscsi's Recommends), so check for that.
+				if [ -n "${IPV4GATEWAY}" ] && which ip >/dev/null 2>&1 ; then
+					ip route add default via "${IPV4GATEWAY}"
+				fi
 				fi
 				continue
 				;;

@@ -76,6 +76,11 @@ natively, you can likely have your iSCSI target mounted without any manual
 configuration. Either place the single line "ISCSI_AUTO=true" into
 /etc/iscsi/iscsi.initramfs, or use the kernel boot line option "iscsi_auto".
 
+If you use automatic configuration, and the iSCSI NIC is also the NIC that
+has the default route, you need to install the busybox (or busybox-initramfs
+on Ubunut) package, otherwise the default route will not be set when you
+boot the system.
+
 If manual configuration is necessary, there are two ways to include iSCSI boot 
 options in your initramfs:
 

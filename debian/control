@@ -13,6 +13,7 @@ Testsuite: autopkgtest
 Package: open-iscsi
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, udev
+Recommends: ${busybox:Recommends}
 Pre-Depends: debconf | debconf-2.0
 Description: iSCSI initiator tools
  Open-iSCSI is a high-performance, transport independent, multi-platform
