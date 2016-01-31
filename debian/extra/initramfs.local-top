@@ -94,7 +94,7 @@ do_iscsi_login ()
 
 	udevadm settle
 
-	if [ -n $ISCSI_AUTO ] ; then
+	if [ -n "$ISCSI_AUTO" ] ; then
 		# try to auto-configure network interface based
 		# on firmware values
 		modprobe iscsi_ibft
