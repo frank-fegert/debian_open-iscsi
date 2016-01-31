@@ -74,8 +74,7 @@ for this is controlled by the existence of the /etc/iscsi/iscsi.initramfs file.
 If you are booting from an iSCSI accelerator or NIC that supports iSCSI boot
 natively, you can likely have your iSCSI target mounted without any manual
 configuration. Either place the single line "ISCSI_AUTO=true" into
-/etc/iscsi/iscsi.initramfs, or touch /etc/iscsi/iscsi.initramfs and use the
-kernel boot line option "iscsi_auto".
+/etc/iscsi/iscsi.initramfs, or use the kernel boot line option "iscsi_auto".
 
 If manual configuration is necessary, there are two ways to include iSCSI boot 
 options in your initramfs:
@@ -112,11 +111,26 @@ If both facilities are used, command line options overwrite iscsi.initramfs
 options.  Also remember that iSCSI requires a working network device, so
 you'll need to get networking started via an ip= boot option (ex. ip=dhcp).
 You also won't want to restart the device during boot, so set it to manual
-mode in /etc/networking/interfaces.  Leave BOOT=local set in
-/etc/initramfs-tools/initramfs.conf and provide a root=/dev/sd* device as
-the iSCSI disk will look like a local disk.
+mode in /etc/networking/interfaces.  Provide a root=/dev/sd* device as the
+iSCSI disk will look like a local disk.
 
 Note: If you need multiple sessions in the initramfs, you can provide multiple IPs
 to the ISCSI_TARGET_IP variable.
 Eg: ISCSI_TARGET_IP="192.168.1.1 192.168.2.1 192.168.3.1"
 This will allow login into all the Target IPs in the initrafs.
+
+initramfs integration
+-----------------------------------
+
+open-iscsi binaries are added to the initramfs, regardless of whether
+/etc/iscsi/iscsi.initramfs exists, because kernel parameters could be be used
+to specify iSCSI parameters regardless of its existence.
+
+If you don't have the root or /usr filesystem on iSCSI and want to keep the
+size of your initramfs small, create
+
+/etc/initramfs-tools/conf.d/open-iscsi
+
+with the following contents:
+
+NO_ISCSI_IN_INITRAMFS=yes

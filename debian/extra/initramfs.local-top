@@ -77,7 +77,7 @@ do_iscsi_login ()
 
 parse_iscsi_ops ()
 {
-	. /etc/iscsi.initramfs
+	[ -r /etc/iscsi.initramfs ] && . /etc/iscsi.initramfs
 
 	for x in $(cat /proc/cmdline); do
 		case ${x} in

@@ -15,7 +15,11 @@ prereqs)
 	;;
 esac
 
-if [ ! -e /etc/iscsi/iscsi.initramfs ]; then
+if [ -r /etc/initramfs-tools/conf.d/open-iscsi ] ; then
+	. /etc/initramfs-tools/conf.d/open-iscsi
+fi
+
+if [ x"$NO_ISCSI_IN_INITRAMFS" = x"yes" ] ; then
 	exit 0
 fi
 
@@ -24,7 +28,9 @@ fi
 
 copy_exec /sbin/iscsistart /sbin
 cp /etc/iscsi/initiatorname.iscsi $DESTDIR/etc
-cp /etc/iscsi/iscsi.initramfs $DESTDIR/etc
+if [ -r /etc/iscsi/iscsi.initramfs ] ; then
+	cp /etc/iscsi/iscsi.initramfs $DESTDIR/etc
+fi
 
 for x in crc32c libcrc32c iscsi_tcp libiscsi scsi_transport_iscsi iscsi_ibft; do
 	manual_add_modules ${x}
