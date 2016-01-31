@@ -93,6 +93,71 @@ do_iscsi_login ()
 	. /scripts/functions
 
 	udevadm settle
+
+	if [ -n $ISCSI_AUTO ] ; then
+		# try to auto-configure network interface based
+		# on firmware values
+		modprobe iscsi_ibft
+		iscsistart -N
+
+		# write out /run/net-$IFACE.conf based on what
+		# was in the firmware
+		iscsistart -f | while read k eq v; do
+			case "${k} ${eq} ${v}" in
+			("# BEGIN RECORD"*)
+				DEVICE=""
+				PROTO="none"
+				IPV4ADDR=""
+				IPV4NETMASK=""
+				IPV4GATEWAY=""
+				IPV4DNS0=""
+				IPV4DNS1=""
+				UPTIME="0"
+				DHCPLEASETIME="0"
+				DOMAINSEARCH=""
+				continue
+				;;
+			("# END RECORD"*)
+				if [ -n "$DEVICE" ] ; then
+				{
+					echo "DEVICE='${DEVICE}'"
+					echo "PROTO='${PROTO}'"
+					echo "IPV4ADDR='${IPV4ADDR}'"
+					echo "IPV4BROADCAST=''"
+					echo "IPV4NETMASK='${IPV4NETMASK}'"
+					echo "IPV4GATEWAY='${IPV4GATEWAY}'"
+					echo "IPV4DNS0='${IPV4DNS0}'"
+					echo "IPV4DNS1='${IPV4DNS1}'"
+					echo "HOSTNAME=''"
+					echo "DNSDOMAIN=''"
+					echo "NISDOMAIN=''"
+					echo "ROOTSERVER=''"
+					echo "ROOTPATH=''"
+					echo "UPTIME='${UPTIME}'"
+					echo "DHCPLEASETIME='${DHCPLEASETIME}'"
+					echo "DOMAINSEARCH=''"
+				} > "/run/net-${DEVICE}.conf"
+				fi
+				continue
+				;;
+			esac
+			if [ "${eq}" != "=" ] ; then
+				continue
+			fi
+			case "${k}" in
+				iface.ipaddress)     IPV4ADDR="${v}" ;;
+				iface.subnet_mask)   IPV4NETMASK="${v}" ;;
+				iface.gateway)       IPV4GATEWAY="${v}" ;;
+				iface.primary_dns)   IPV4DNS0="${v}" ;;
+				iface.secondary_dns) IPV4DNS1="${v}" ;;
+				iface.net_ifacename) DEVICE="${v}" ;;
+			esac
+		done
+	fi
+
+	# run configure_networking even if we have iscsi_auto, because there
+	# could be other network interfaces that need to be configured
+	# manually
 	configure_networking
 
 	modprobe iscsi_tcp
