@@ -39,6 +39,18 @@ case "$1" in
     ;;
 esac
 
+if [ "$1" = "upgrade" ] && dpkg --compare-versions "$2" le-nl "2.0.873+git0.3b4b4500-12" ; then
+    # /etc/iscsi/initiatorname.iscsi is no longer a conffile, so we rename it
+    # to .dpkg-backup so that dpkg will not mark it as an obsolete conffile
+    # on upgrading (which could cause some administrators to accidentally
+    # remove the file even though they need it while removing obsolete
+    # conffiles) - and then in postinst we will rename it back to
+    # initiatorname.iscsi.
+    if [ -f /etc/iscsi/initiatorname.iscsi ] ; then
+        mv -f /etc/iscsi/initiatorname.iscsi /etc/iscsi/initiatorname.iscsi.dpkg-backup
+    fi
+fi
+
 #DEBHELPER#
 
 exit 0

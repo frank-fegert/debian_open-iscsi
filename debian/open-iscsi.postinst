@@ -39,6 +39,14 @@ case "$1" in
 	    fi
 	fi
 
+	if dpkg --compare-versions "$2" le-nl "2.0.873+git0.3b4b4500-12" ; then
+	    # Handle the fact that /etc/iscsi/initiatorname.iscsi is no longer
+	    # a conffile of this package but we want to keep it.
+	    if [ -f /etc/iscsi/initiatorname.iscsi.dpkg-backup ] && ! [ -f /etc/iscsi/initiatorname.iscsi ] ; then
+		mv -f /etc/iscsi/initiatorname.iscsi.dpkg-backup /etc/iscsi/initiatorname.iscsi
+	    fi
+	fi
+
 	# Compatibility symlinks
 	for file in iscsid iscsi_discovery iscsi-iname iscsistart; do
 		if [ ! -e /usr/sbin/$file ]; then
