@@ -28,7 +28,10 @@ fi
 
 EXCLUDED_SESSIONS=""
 if [ -f /run/open-iscsi/shutdown-keep-sessions ] ; then
-	EXCLUDED_SESSIONS=$(cat /run/open-iscsi/shutdown-keep-sessions)
+	_EXCLUDED_SESSIONS=$(cat /run/open-iscsi/shutdown-keep-sessions)
+	for s in ${_EXCLUDED_SESSIONS} ; do
+		EXCLUDED_SESSIONS="${EXCLUDED_SESSIONS:+$EXCLUDED_SESSIONS }${s}"
+	done
 fi
 
 # trivial case

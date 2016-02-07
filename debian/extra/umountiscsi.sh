@@ -221,7 +221,7 @@ enumerate_iscsi_devices() {
 		hash_get _disk_sessions ISCSI_DEVICE_SESSIONS "${_disk}"
 		for _part_dir in /sys/class/block/"${_disk}"/"${_disk}"?* ; do
 			_part="${_part_dir##*/}"
-			[ x"${_part}"x != x"?*"x ] || continue
+			[ x"${_part}"x != x"${_disk}?*"x ] || continue
 			add_to_set iscsi_partitions "${_part}"
 			hash_set ISCSI_DEVICE_SESSIONS "${_part}" "${_disk_sessions}"
 		done
