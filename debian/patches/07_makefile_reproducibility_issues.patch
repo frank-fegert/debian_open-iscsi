@@ -1,0 +1,36 @@
+Description: Fix reproducibility issues in Makefiles
+ Intend to forward upstream as soon as Jenkins confirms that it fixes
+ reproducibility.
+Author: Christian Seiler <christian@iwakd.de>
+
+--- a/usr/Makefile
++++ b/usr/Makefile
+@@ -35,7 +35,7 @@ CFLAGS += $(OPTFLAGS) $(WARNFLAGS) -I../
+ PROGRAMS = iscsid iscsiadm iscsistart
+ 
+ # libc compat files
+-SYSDEPS_SRCS = $(wildcard ../utils/sysdeps/*.o)
++SYSDEPS_SRCS = $(sort $(wildcard ../utils/sysdeps/*.o))
+ # sources shared between iscsid, iscsiadm and iscsistart
+ ISCSI_LIB_SRCS = iscsi_util.o io.o auth.o iscsi_timer.o login.o log.o md5.o \
+ 	sha1.o iface.o idbm.o sysfs.o host.o session_info.o iscsi_sysfs.o \
+@@ -46,7 +46,7 @@ ISCSI_LIB_SRCS = iscsi_util.o io.o auth.
+ INITIATOR_SRCS = initiator.o scsi.o actor.o event_poll.o mgmt_ipc.o kern_err_table.o
+ 
+ # fw boot files
+-FW_BOOT_SRCS = $(wildcard ../utils/fwparam_ibft/*.o)
++FW_BOOT_SRCS = $(sort $(wildcard ../utils/fwparam_ibft/*.o))
+ 
+ # core discovery files
+ DISCOVERY_SRCS = $(FW_BOOT_SRCS) strings.o discovery.o
+--- a/utils/fwparam_ibft/Makefile
++++ b/utils/fwparam_ibft/Makefile
+@@ -21,7 +21,7 @@
+ #	    "Prasanna Mumbai" <mumbai.prasanna@gmail.com>
+ #
+ 
+-SYSDEPS_OBJS = $(wildcard ../sysdeps/*.o)
++SYSDEPS_OBJS = $(sort $(wildcard ../sysdeps/*.o))
+ OBJS := fw_entry.o fwparam_sysfs.o $(SYSDEPS_OBJS) ../../usr/iscsi_net_util.o
+ OBJS += prom_lex.o prom_parse.tab.o fwparam_ppc.o
+ CLEANFILES = $(OBJS) *.output *~
