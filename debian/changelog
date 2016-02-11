@@ -1,3 +1,34 @@
+open-iscsi (2.0.873+git0.3b4b4500-13) unstable; urgency=medium
+
+  [ Christian Seiler ]
+  * [d95ccde] initramfs: fix initramfs creation bug
+    (too many symbolic links)
+  * [f6246a8] Use triggers instead of update-initramfs
+  * [16283ac] Unconditionally add iSCSI to initramfs images
+  * [5cf584f] Support RFC 4173 root=iscsi:... format (Closes: #804162)
+  * [b12b4b9] Make sure initiatorname.iscsi isn't an obsolete conffile.
+  * [06ce1d3] Don't consider iscsiadm exit code 15 to be an error
+    (Partial-Fix-For: #809320)
+  * [481cedd] Support network autoconfiguration if iscsi_auto is used
+    (Closes: #804591)
+  * [3b3fa00] Record network device that was configured for iSCSI
+  * [508fcba] Handle the default route for iscsi_auto
+  * [64b0f31] Fix handling of multiple kept sessions on shutdown
+    (Closes: #809320)
+  * [df7259e] Fix FTBR on armhf (reproducible builds)
+
+  [ Marco d'Itri ]
+  * [d32c7c6] Create in postinst the /sbin/iscsi* compatibility symlinks.
+    (Closes: #810276)
+
+  [ Martin Pitt ]
+  * [db49787] Migrate from /var/run /run and from /var/lock to /run/lock.
+    (Closes: #810696)
+  * [1bca41d] Generate initiator name on install, not first boot.
+    (Closes: #810702) (LP: #1057635)
+
+ -- Christian Seiler <christian@iwakd.de>  Thu, 11 Feb 2016 16:35:07 +0530
+
 open-iscsi (2.0.873+git0.3b4b4500-12) unstable; urgency=low
 
   [ Christian Perrier ]
