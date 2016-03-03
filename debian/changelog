@@ -1,3 +1,15 @@
+open-iscsi (2.0.873+git0.3b4b4500-14) unstable; urgency=medium
+
+  [ Christian Seiler ]
+  * [7ec2450] debian/control: fix typo in Vcs-Git field
+  * [b98ca63] debian/control: bump Standards-Version to 3.9.7
+
+  [ Mathieu Trudel-Lapierre ]
+  * [f5b850a] udeb: don't generate initiator name if already present
+    (Closes: #816632)
+
+ -- Christian Seiler <christian@iwakd.de>  Thu, 03 Mar 2016 18:47:46 +0100
+
 open-iscsi (2.0.873+git0.3b4b4500-13) unstable; urgency=medium
 
   [ Christian Seiler ]
