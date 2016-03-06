@@ -11,7 +11,7 @@ Homepage: http://www.open-iscsi.org/
 Testsuite: autopkgtest
 
 Package: open-iscsi
-Architecture: any
+Architecture: linux-any
 Depends: ${shlibs:Depends}, ${misc:Depends}, udev
 Recommends: ${busybox:Recommends}
 Pre-Depends: debconf | debconf-2.0
