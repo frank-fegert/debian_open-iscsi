@@ -41,7 +41,7 @@ Package: open-iscsi-udeb
 Architecture: amd64 arm64 i386 ia64 mips mipsel powerpc s390x ppc64el ppc64 armhf
 Section: debian-installer
 Package-Type: udeb
-Depends: ${shlibs:Depends}, ${misc:Depends}, scsi-modules, libnss-files-udeb
+Depends: ${shlibs:Depends}, ${misc:Depends}, scsi-modules
 Description: Configure iSCSI
  Open-iSCSI is a high-performance, transport independent, multi-platform
  implementation of the RFC3720 Internet Small Computer Systems Interface
