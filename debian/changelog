@@ -1,3 +1,18 @@
+open-iscsi (2.0.873+git0.3b4b4500-15) unstable; urgency=medium
+
+  [ Christian Seiler ]
+  * [ec1cc4b] debian/control: Use Arch: linux-any instead of Arch: any
+  * [2f35aeb] open-iscsi-udeb: drop Depends: libnss-files-udeb
+    (Closes: #819685)
+  * [2af4f32] debian/control: Bump Standards-Version to 3.9.8.
+    (No changes.)
+
+  [ Adriano Rafael Gomes ]
+  * [8b8eb17] Add Brazilian Portuguese debconf translation.
+    (Closes: #824339)
+
+ -- Christian Seiler <christian@iwakd.de>  Fri, 20 May 2016 09:52:46 +0200
+
 open-iscsi (2.0.873+git0.3b4b4500-14) unstable; urgency=medium
 
   [ Christian Seiler ]
