@@ -12,3 +12,6 @@ debian/extra/logout-all.sh             /lib/open-iscsi
 debian/extra/startup-checks.sh         /lib/open-iscsi
 debian/extra/activate-storage.sh       /lib/open-iscsi
 debian/open-iscsi.kmod              => /lib/modules-load.d/open-iscsi.conf
+iscsiuio/src/unix/iscsiuio	       /sbin
+iscsiuio/README			    => /usr/share/doc/open-iscsi/README.iscsiuio
+iscsiuio/iscsiuiolog		    => /etc/logrotate.d/iscsiuiolog

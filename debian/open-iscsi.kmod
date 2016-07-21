@@ -1,2 +1,4 @@
 iscsi_tcp
 ib_iser
+bnx2i
+cnic
