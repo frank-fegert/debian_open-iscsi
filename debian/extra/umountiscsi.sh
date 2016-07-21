@@ -258,9 +258,11 @@ enumerate_iscsi_devices() {
 		# on any iSCSI device we found. Also, add $LVMGROUPS set in
 		# /etc/default/open-iscsi (for more complicated stacking
 		# configurations we don't automatically detect).
-		for _vg in $(cd /dev ; $PVS --noheadings -o vg_name $iscsi_disks $iscsi_partitions $iscsi_multipath_disks $iscsi_multipath_partitions 2>/dev/null) $LVMGROUPS ; do
-			add_to_set iscsi_lvm_vgs "$_vg"
-		done
+		if [ -n "$iscsi_disks" -o -n "$iscsi_partitions" -o -n "$iscsi_multipath_disks" -o -n "$iscsi_multipath_partitions" ]; then
+		    for _vg in $(cd /dev ; $PVS --noheadings -o vg_name $iscsi_disks $iscsi_partitions $iscsi_multipath_disks $iscsi_multipath_partitions 2>/dev/null) $LVMGROUPS ; do
+			    add_to_set iscsi_lvm_vgs "$_vg"
+		    done
+		fi
 
 		# $iscsi_lvm_vgs is now unique list
 		for _vg in $iscsi_lvm_vgs ; do
