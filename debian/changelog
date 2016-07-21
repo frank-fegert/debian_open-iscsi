@@ -1,3 +1,14 @@
+open-iscsi (2.0.873+git0.3b4b4500-15~bpo8+1) jessie-backports; urgency=medium
+
+  * Rebuild for jessie-backports.
+  * Enabled build of iscsiuio in order to support Broadcom NetXtreme II
+    BCM577xx/BCM578xx iSOE.
+  * Systemd integration for iscsiuio.
+  * Fixed in extra/umountiscsi.sh to properly handle cases where no iSCSI
+    based disks are present in a system.
+
+ -- Frank Fegert <fra.nospam.nk@gmx.de>  Thu, 21 Jul 2016 09:49:49 +0200
+
 open-iscsi (2.0.873+git0.3b4b4500-15) unstable; urgency=medium
 
   [ Christian Seiler ]
