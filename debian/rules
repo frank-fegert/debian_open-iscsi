@@ -23,11 +23,43 @@ override_dh_auto_build:
 	$(MAKE) -C utils/fwparam_ibft
 	$(MAKE) user
 	$(MAKE) -C utils
+	$(MAKE) -C iscsiuio
 
 override_dh_auto_clean:
 	$(MAKE) -C utils/fwparam_ibft clean
 	$(MAKE) -C usr clean
 	$(MAKE) -C utils clean
+	[ ! -f utils/open-isns/Makefile ] || $(MAKE) -C utils/open-isns clean
+	[ ! -f utils/open-isns/Makefile ] || $(MAKE) -C utils/open-isns distclean
+	#[ ! -f iscsiuio/Makefile ] || $(MAKE) -C iscsiuio clean
+	rm  -f iscsiuio/config.*
+	rm  -f iscsiuio/libtool
+	rm  -f iscsiuio/stamp-h1
+	rm  -f iscsiuio/Makefile
+	rm  -f iscsiuio/src/Makefile
+	rm  -f iscsiuio/src/apps/Makefile
+	rm  -f iscsiuio/src/apps/dhcpc/*.a
+	rm  -f iscsiuio/src/apps/dhcpc/*.o
+	rm  -f iscsiuio/src/apps/dhcpc/Makefile
+	rm -rf iscsiuio/src/apps/dhcpc/.deps
+	rm  -f iscsiuio/src/apps/brcm-iscsi/*.a
+	rm  -f iscsiuio/src/apps/brcm-iscsi/*.o
+	rm  -f iscsiuio/src/apps/brcm-iscsi/Makefile
+	rm -rf iscsiuio/src/apps/brcm-iscsi/.deps
+	rm  -f iscsiuio/src/uip/Makefile
+	rm  -f iscsiuio/src/uip/*.a
+	rm  -f iscsiuio/src/uip/*.o
+	rm -rf iscsiuio/src/uip/.deps
+	rm  -f iscsiuio/src/unix/iscsiuio
+	rm  -f iscsiuio/src/unix/build_date.*
+	rm  -f iscsiuio/src/unix/libs/*.a
+	rm  -f iscsiuio/src/unix/libs/*.o
+	rm  -f iscsiuio/src/unix/libs/Makefile
+	rm -rf iscsiuio/src/unix/libs/.deps
+	rm  -f iscsiuio/src/unix/*.o
+	rm  -f iscsiuio/src/unix/Makefile
+	rm -rf iscsiuio/src/unix/.deps
+	rm -rf iscsiuio/src/unix/.libs
 	rm -rf modules
 
 override_dh_auto_install:
@@ -54,10 +86,11 @@ override_dh_installinit:
 
 override_dh_systemd_enable:
 	dh_systemd_enable --name=iscsid
+	dh_systemd_enable --name=iscsiuio iscsiuio.socket
 	dh_systemd_enable
 
 override_dh_systemd_start:
-	dh_systemd_start -popen-iscsi --no-restart-on-upgrade --no-start iscsid.service open-iscsi.service
+	dh_systemd_start -popen-iscsi --no-restart-on-upgrade --no-start iscsid.service open-iscsi.service iscsiuio.socket
 
 # The following is taken from the initramfs-tools package. (We recommend
 # busybox in the initramfs because otherwise we don't have access to the
