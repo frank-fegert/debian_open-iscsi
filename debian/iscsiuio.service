@@ -1,0 +1,19 @@
+[Unit]
+Description=iSCSI UserSpace I/O driver
+Documentation=man:iscsiuio(8)
+DefaultDependencies=no
+Conflicts=shutdown.target
+Requires=open-iscsi.service
+BindTo=open-iscsi.service
+Wants=network-online.target remote-fs-pre.target
+After=network.target network-online.target
+Before=remote-fs-pre.target open-iscsi.service
+
+[Service]
+Type=forking
+PIDFile=/run/iscsiuio.pid
+ExecStart=/sbin/iscsiuio -d 1
+
+[Install]
+#WantedBy=multi-user.target
+WantedBy=sysinit.target
