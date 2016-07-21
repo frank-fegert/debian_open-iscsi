@@ -2,6 +2,6 @@
 02_make-iscsistart-a-dynamic-binary.patch
 03_respect-build-flags.patch
 04_fix_iscsi_path.patch
-05-disable-iscsiuio.patch
 06_var-lock_var-run_transition
 07_makefile_reproducibility_issues.patch
+08_fPIC.patch
