@@ -20,6 +20,17 @@ INSTALL = install
 ETCFILES = etc/iscsid.conf
 IFACEFILES = etc/iface.example
 
+# Compatibility: parse old OPTFLAGS argument
+ifdef OPTFLAGS
+CFLAGS = $(OPTFLAGS)
+endif
+
+# Export it so configure of iscsiuio & open-isns will
+# pick it up.
+ifneq (,$(CFLAGS))
+export CFLAGS
+endif
+
 # Random comments:
 # using '$(MAKE)' instead of just 'make' allows make to run in parallel
 # over multiple makefile.
@@ -44,10 +55,13 @@ user: utils/open-isns/Makefile iscsiuio/Makefile
 	@echo "Read README file for detailed information."
 
 utils/open-isns/Makefile: utils/open-isns/configure utils/open-isns/Makefile.in
-	cd utils/open-isns; ./configure CFLAGS="$(OPTFLAGS)" --with-security=no
+	cd utils/open-isns; ./configure --with-security=no
 
 iscsiuio/Makefile: iscsiuio/configure iscsiuio/Makefile.in
 	cd iscsiuio; ./configure
+
+iscsiuio/configure iscsiuio/Makefile.in: iscsiuio/configure.ac iscsiuio/Makefile.am
+	cd iscsiuio; autoreconf --install
 
 kernel: force
 	$(MAKE) -C kernel
@@ -66,9 +80,10 @@ clean:
 	$(MAKE) -C utils clean
 	$(MAKE) -C usr clean
 	$(MAKE) -C kernel clean
-	$(MAKE) -C iscsiuio clean
-	$(MAKE) -C utils/open-isns clean
-	$(MAKE) -C utils/open-isns distclean
+	[ ! -f iscsiuio/Makefile ] || $(MAKE) -C iscsiuio clean
+	[ ! -f iscsiuio/Makefile ] || $(MAKE) -C iscsiuio distclean
+	[ ! -f utils/open-isns/Makefile ] || $(MAKE) -C utils/open-isns clean
+	[ ! -f utils/open-isns/Makefile ] || $(MAKE) -C utils/open-isns distclean
 
 # this is for safety
 # now -jXXX will still be safe
@@ -121,7 +136,7 @@ install_iface: $(IFACEFILES)
 	$(INSTALL) -m 644 $^ $(DESTDIR)$(etcdir)/iscsi/ifaces
 
 install_etc: $(ETCFILES)
-	if [ ! -f /etc/iscsi/iscsid.conf ]; then \
+	if [ ! -f $(DESTDIR)/etc/iscsi/iscsid.conf ]; then \
 		$(INSTALL) -d $(DESTDIR)$(etcdir)/iscsi ; \
 		$(INSTALL) -m 644 $^ $(DESTDIR)$(etcdir)/iscsi ; \
 	fi
@@ -134,11 +149,11 @@ install_kernel:
 	$(MAKE) -C kernel install_kernel
 
 install_iname:
-	if [ ! -f /etc/iscsi/initiatorname.iscsi ]; then \
+	if [ ! -f $(DESTDIR)/etc/iscsi/initiatorname.iscsi ]; then \
 		echo "InitiatorName=`$(DESTDIR)/sbin/iscsi-iname`" > $(DESTDIR)/etc/iscsi/initiatorname.iscsi ; \
 		echo "***************************************************" ; \
 		echo "Setting InitiatorName to `cat $(DESTDIR)/etc/iscsi/initiatorname.iscsi`" ; \
-		echo "To override edit /etc/iscsi/initiatorname.iscsi" ; \
+		echo "To override edit $(DESTDIR)/etc/iscsi/initiatorname.iscsi" ; \
 		echo "***************************************************" ; \
 	fi
 

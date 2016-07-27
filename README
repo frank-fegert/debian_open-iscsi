@@ -92,7 +92,7 @@ by running:
 	make kernel
 
 When building those modules the kernel source found at
-/lib/modules/`uname -a`/build
+/lib/modules/`uname -r`/build
 will be used to compile the open-iscsi modules. To specify a different
 kernel to build against use:
 
@@ -393,7 +393,7 @@ Usage: iscsiadm [OPTION]
 			  See below for examples.
   -m iface --interface=iscsi_ifacename -C ping --ip=[ipaddr] --packetsize=[size]
 				--count=[count] --interval=[interval]
-  -m host --host=hostno|MAC --print=level -C chap --op=[op] --value=[chap_tbl_idx]
+  -m host --host=hostno|MAC --print=level -C chap --op=[SHOW]
 			  Display information for a specific host. The host
 			  can be passed in by host number or by MAC address.
 			  If a host is not passed in then info
@@ -406,6 +406,14 @@ Usage: iscsiadm [OPTION]
 			  is connected to.
 			  3 = Print iscsi params used.
 			  4 = Print SCSI info like LUNs, device state.
+  -m host --host=hostno|MAC -C chap --op=[DELETE] --index=[chap_tbl_idx]
+			   Delete chap entry at the given index from chap table.
+  -m host --host=hostno|MAC -C chap --op=[NEW | UPDATE] --index=[chap_tbl_idx] \
+				--name=[name] --value=[value]
+			  Add new or update existing chap entry at the given
+			  index with given username and password pair. If index
+			  is not passed then entry is added at the first free
+			  index in chap table.
   -m host --host=hostno|MAC -C flashnode
 			  Display list of all the targets in adapter's
 			  flash (flash node), for the specified host,
@@ -414,13 +422,13 @@ Usage: iscsiadm [OPTION]
 			  Create new flash node entry for the given host of the
 			  specified portal_type. This returns the index of the
 			  newly created entry on success.
-  -m host --host=hostno|MAC -C flashnode --flashnode_idx=[flashnode index] \
+  -m host --host=hostno|MAC -C flashnode --index=[flashnode index] \
 				--op=[UPDATE] --name=[name] --value=[value]
 			  Update the params of the speficied flash node.
 			  The [name] and [value] pairs must be provided for the
 			  params that need to be updated. Multiple params can
 			  be updated using a single command.
-  -m host --host=hostno|MAC -C flashnode--flashnode_idx=[flashnode index] \
+  -m host --host=hostno|MAC -C flashnode --index=[flashnode index] \
 				--op=[SHOW | DELETE | LOGIN | LOGOUT]
 			  op=DELETE|LOGIN|LOGOUT will perform deletion/login/
 			  logout operation on the specified flash node.
@@ -1032,6 +1040,46 @@ To now log into targets it is the same as with sofware iscsi. See section
 
     - Delete a flash node entry
 	    ./iscsiadm -m host -H 6 -C flashnode -x 1 -o delete
+
+    Host mode with chap submode:
+
+    - Display list of chap entries for a host
+
+	    ./iscsiadm -m host -H 6 -C chap -o show
+
+	This will list all the chap entries for the given host.
+
+    - Delete a chap entry for a host
+
+	    ./iscsiadm -m host -H 6 -C chap -o delete -x 5
+
+	This will delete any chap entry present at given index 5.
+
+    - Add/Update a local chap entry for a host
+
+	    ./iscsiadm -m host -H 6 -C chap -o update -x 4 -n username \
+			-v value -n password -v value
+
+	This will update the local chap entry present at index 4. If index 4
+	is free then entry of type local chap will be created at that index
+	with given username and password values.
+
+    - Add/Update a bidi chap entry for a host
+
+	    ./iscsiadm -m host -H 6 -C chap -o update -x 5 -n username_in \
+			-v value -n password_in -v value
+
+	This will update the bidi chap entry present at index 5. If index 5
+	is free then entry of type bidi chap will be created at that index
+	with given username_in and password_in values.
+
+    Host mode with stats submode:
+
+    - Display host statistics:
+	    ./iscsiadm -m host -H 6 -C stats
+
+	This will print the aggregate statistics on the host adapter port.
+	This includes MAC, TCP/IP, ECC & iSCSI statistics.
 
 6. Configuration
 ================

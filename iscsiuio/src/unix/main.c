@@ -181,7 +181,6 @@ static void main_usage()
 static void daemon_init()
 {
 	int fd;
-	int rc;
 
 	fd = open("/dev/null", O_RDWR);
 	if (fd == -1)
@@ -191,7 +190,7 @@ static void daemon_init()
 	dup2(fd, 1);
 	dup2(fd, 2);
 	setsid();
-	rc = chdir("/");
+	chdir("/");
 }
 
 #define ISCSI_OOM_PATH_LEN 48
@@ -233,10 +232,11 @@ int main(int argc, char *argv[])
 {
 	int rc;
 	sigset_t set;
-	char *pid_file = default_pid_filepath;
+	const char *pid_file = default_pid_filepath;
 	int fd;
 	int foreground = 0;
 	pid_t pid;
+	pthread_attr_t attr;
 
 	/*  Record the start time for the user space daemon */
 	opt.start_time = time(NULL);
@@ -366,7 +366,9 @@ int main(int argc, char *argv[])
 	rc = pthread_sigmask(SIG_SETMASK, &set, NULL);
 
 	/*  Spin off the signal handling thread */
-	rc = pthread_create(&signal_thread, NULL, signal_handle_thread, NULL);
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	rc = pthread_create(&signal_thread, &attr, signal_handle_thread, NULL);
 	if (rc != 0)
 		LOG_ERR("Could not create signal handling thread");
 

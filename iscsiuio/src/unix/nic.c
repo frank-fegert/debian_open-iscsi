@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009-2011, Broadcom Corporation
+ * Copyright (c) 2014, QLogic Corporation
  *
  * Written by:  Benjamin Li  (benli@broadcom.com)
  *
@@ -450,7 +451,6 @@ int nic_remove(nic_t *nic)
 	int rc;
 	nic_t *prev, *current;
 	struct stat file_stat;
-	void *res;
 	nic_interface_t *nic_iface, *next_nic_iface, *vlan_iface;
 
 	pthread_mutex_lock(&nic->nic_mutex);
@@ -471,12 +471,6 @@ int nic_remove(nic_t *nic)
 			LOG_DEBUG(PFX "%s: Couldn't send cancel to nic enable "
 				  "thread", nic->log_name);
 
-		LOG_DEBUG(PFX "%s: Waiting to join nic enable thread",
-			  nic->log_name);
-		rc = pthread_join(nic->enable_thread, &res);
-		if (rc != 0)
-			LOG_DEBUG(PFX "%s: Couldn't join to canceled enable "
-				  "nic thread", nic->log_name);
 		nic->enable_thread = INVALID_THREAD;
 		LOG_DEBUG(PFX "%s: nic enable thread cleaned", nic->log_name);
 	} else {
@@ -492,11 +486,6 @@ int nic_remove(nic_t *nic)
 			LOG_DEBUG(PFX "%s: Couldn't send cancel to nic",
 				  nic->log_name);
 
-		LOG_DEBUG(PFX "%s: Waiting to join nic thread", nic->log_name);
-		rc = pthread_join(nic->thread, &res);
-		if (rc != 0)
-			LOG_DEBUG(PFX "%s: Couldn't join to canceled nic "
-				  "thread", nic->log_name);
 		nic->thread = INVALID_THREAD;
 		LOG_DEBUG(PFX "%s: nic thread cleaned", nic->log_name);
 	} else {
@@ -511,12 +500,6 @@ int nic_remove(nic_t *nic)
 			LOG_DEBUG(PFX "%s: Couldn't send cancel to nic nl "
 				  "thread", nic->log_name);
 
-		LOG_DEBUG(PFX "%s: Waiting to join nic nl thread",
-			  nic->log_name);
-		rc = pthread_join(nic->nl_process_thread, &res);
-		if (rc != 0)
-			LOG_DEBUG(PFX "%s: Couldn't join to canceled nic nl "
-				  "thread", nic->log_name);
 		nic->nl_process_thread = INVALID_THREAD;
 		LOG_DEBUG(PFX "%s: nic nl thread cleaned", nic->log_name);
 	} else {
@@ -840,7 +823,11 @@ static void prepare_ipv4_packet(nic_t *nic,
 		break;
 	case NOT_IN_ARP_TABLE:
 		queue_rc = nic_queue_tx_packet(nic, nic_iface, pkt);
-		uip_build_arp_request(ustack, ipaddr);
+		if (queue_rc) {
+			LOG_ERR("could not queue TX packet: %d", queue_rc);
+		} else {
+			uip_build_arp_request(ustack, ipaddr);
+		}
 		break;
 	default:
 		LOG_ERR("Unknown arp state");
@@ -1006,9 +993,6 @@ int process_packets(nic_t *nic,
 		uint16_t type = 0;
 		int af_type = 0;
 		struct uip_stack *ustack;
-		struct ip_hdr *ip;
-		struct ipv6_hdr *ip6;
-		void *dst_ip;
 		uint16_t vlan_id;
 
 		pkt->data_link_layer = pkt->buf;
@@ -1016,11 +1000,13 @@ int process_packets(nic_t *nic,
 		vlan_id = pkt->vlan_tag & 0xFFF;
 		if ((vlan_id == 0) ||
 		    (NIC_VLAN_STRIP_ENABLED & nic->flags)) {
-			type = ntohs(ETH_BUF(pkt->buf)->type);
+			struct uip_eth_hdr *hdr = ETH_BUF(pkt->buf);
+			type = ntohs(hdr->type);
 			pkt->network_layer = pkt->data_link_layer +
 					     sizeof(struct uip_eth_hdr);
 		} else {
-			type = ntohs(VLAN_ETH_BUF(pkt->buf)->type);
+			struct uip_vlan_eth_hdr *hdr = VLAN_ETH_BUF(pkt->buf);
+			type = ntohs(hdr->type);
 			pkt->network_layer = pkt->data_link_layer +
 					     sizeof(struct uip_vlan_eth_hdr);
 		}
@@ -1028,14 +1014,10 @@ int process_packets(nic_t *nic,
 		switch (type) {
 		case UIP_ETHTYPE_IPv6:
 			af_type = AF_INET6;
-			ip6 = (struct ipv6_hdr *) pkt->network_layer;
-			dst_ip = (void *)&ip6->ipv6_dst;
 			break;
 		case UIP_ETHTYPE_IPv4:
 		case UIP_ETHTYPE_ARP:
 			af_type = AF_INET;
-			ip = (struct ip_hdr *) pkt->network_layer;
-			dst_ip = (void *)&ip->destipaddr;
 			break;
 		default:
 			LOG_PACKET(PFX "%s: Ignoring vlan:0x%x ethertype:0x%x",
@@ -1238,7 +1220,6 @@ static int do_acquisition(nic_t *nic, nic_interface_t *nic_iface,
 {
 	struct in_addr addr;
 	struct in6_addr addr6;
-	void *res;
 	char buf[INET6_ADDRSTRLEN];
 	int rc = -1;
 
@@ -1316,9 +1297,9 @@ static int do_acquisition(nic_t *nic, nic_interface_t *nic_iface,
 			if (nic->enable_thread == INVALID_THREAD)
 				goto dhcp_err;
 
-			rc = pthread_join(nic->enable_thread, &res);
+			rc = pthread_cancel(nic->enable_thread);
 			if (rc != 0)
-				LOG_ERR(PFX "%s: Couldn't join to canceled "
+				LOG_ERR(PFX "%s: Couldn't cancel "
 					"enable nic thread", nic->log_name);
 dhcp_err:
 			pthread_mutex_lock(&nic->nic_mutex);

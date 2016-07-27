@@ -237,6 +237,9 @@ void
 idbm_recinfo_node(node_rec_t *r, recinfo_t *ri)
 {
 	int num = 0, i;
+	int iface_type;
+
+	iface_type = iface_get_iptype(&r->iface);
 
 	__recinfo_str(NODE_NAME, ri, r, name, IDBM_SHOW, num, 0);
 	__recinfo_int(NODE_TPGT, ri, r, tpgt, IDBM_SHOW, num, 0);
@@ -259,6 +262,8 @@ idbm_recinfo_node(node_rec_t *r, recinfo_t *ri)
 	__recinfo_str(IFACE_IPADDR, ri, r, iface.ipaddress, IDBM_SHOW, num, 1);
 	__recinfo_str(IFACE_ISCSINAME, ri, r, iface.name, IDBM_SHOW, num, 1);
 	__recinfo_str(IFACE_NETNAME, ri, r, iface.netdev, IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_GATEWAY, ri, r, iface.gateway, IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_SUBNET_MASK, ri, r, iface.subnet_mask, IDBM_SHOW, num, 1);
 	/*
 	 * svn 780 compat: older versions used node.transport_name and
 	 * rec->transport_name
@@ -266,21 +271,6 @@ idbm_recinfo_node(node_rec_t *r, recinfo_t *ri)
 	__recinfo_str(IFACE_TRANSPORTNAME, ri, r, iface.transport_name,
 		      IDBM_SHOW, num, 1);
 	__recinfo_str(IFACE_INAME, ri, r, iface.iname, IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_BOOT_PROTO, ri, r, iface.bootproto, IDBM_SHOW,
-		      num, 1);
-	__recinfo_str(IFACE_SUBNET_MASK, ri, r, iface.subnet_mask,
-		      IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_GATEWAY, ri, r, iface.gateway, IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_IPV6_AUTOCFG, ri, r, iface.ipv6_autocfg,
-		      IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_LINKLOCAL_AUTOCFG, ri, r, iface.linklocal_autocfg,
-		      IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_ROUTER_AUTOCFG, ri, r, iface.router_autocfg,
-		      IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_LINKLOCAL, ri, r, iface.ipv6_linklocal,
-		      IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_ROUTER, ri, r, iface.ipv6_router, IDBM_SHOW, num,
-		      1);
 	__recinfo_str(IFACE_STATE, ri, r, iface.state, IDBM_SHOW, num, 1);
 	__recinfo_uint16(IFACE_VLAN_ID, ri, r, iface.vlan_id, IDBM_SHOW, num,
 			 1);
@@ -291,6 +281,115 @@ idbm_recinfo_node(node_rec_t *r, recinfo_t *ri)
 	__recinfo_int(IFACE_NUM, ri, r, iface.iface_num, IDBM_SHOW, num, 1);
 	__recinfo_uint16(IFACE_MTU, ri, r, iface.mtu, IDBM_SHOW, num, 1);
 	__recinfo_uint16(IFACE_PORT, ri, r, iface.port, IDBM_SHOW, num, 1);
+
+	if (iface_type == ISCSI_IFACE_TYPE_IPV4) {
+		__recinfo_str(IFACE_BOOT_PROTO, ri, r, iface.bootproto,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_DHCP_ALT_CID, ri, r,
+			      iface.dhcp_alt_client_id_state, IDBM_SHOW,
+			      num, 1);
+		__recinfo_str(IFACE_DHCP_ALT_CID_STR, ri, r,
+			      iface.dhcp_alt_client_id, IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_DHCP_DNS, ri, r, iface.dhcp_dns, IDBM_SHOW,
+			      num, 1);
+		__recinfo_str(IFACE_DHCP_LEARN_IQN, ri, r,
+			      iface.dhcp_learn_iqn, IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_DHCP_REQ_VID, ri, r,
+			      iface.dhcp_req_vendor_id_state, IDBM_SHOW,
+			      num, 1);
+		__recinfo_str(IFACE_DHCP_VID, ri, r, iface.dhcp_vendor_id_state,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_DHCP_VID_STR, ri, r, iface.dhcp_vendor_id,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_DHCP_SLP_DA, ri, r, iface.dhcp_slp_da,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_FRAGMENTATION, ri, r, iface.fragmentation,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_GRAT_ARP, ri, r, iface.gratuitous_arp,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_IN_FORWARD, ri, r,
+			      iface.incoming_forwarding, IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_TOS_STATE, ri, r, iface.tos_state,
+			      IDBM_SHOW, num, 1);
+		__recinfo_uint8(IFACE_TOS, ri, r, iface.tos, IDBM_SHOW, num, 1);
+		__recinfo_uint8(IFACE_TTL, ri, r, iface.ttl, IDBM_SHOW, num, 1);
+	} else if (iface_type == ISCSI_IFACE_TYPE_IPV6) {
+		__recinfo_str(IFACE_IPV6_AUTOCFG, ri, r, iface.ipv6_autocfg,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_LINKLOCAL_AUTOCFG, ri, r,
+			      iface.linklocal_autocfg, IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_ROUTER_AUTOCFG, ri, r, iface.router_autocfg,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_LINKLOCAL, ri, r, iface.ipv6_linklocal,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_ROUTER, ri, r, iface.ipv6_router,
+			      IDBM_SHOW, num, 1);
+		__recinfo_uint8(IFACE_DUP_ADDR_DETECT_CNT, ri, r,
+				iface.dup_addr_detect_cnt, IDBM_SHOW, num, 1);
+		__recinfo_uint32(IFACE_FLOW_LABEL, ri, r, iface.flow_label,
+				 IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_GRAT_NEIGHBOR_ADV, ri, r,
+			      iface.gratuitous_neighbor_adv, IDBM_SHOW, num, 1);
+		__recinfo_uint8(IFACE_HOP_LIMIT, ri, r, iface.hop_limit,
+				IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_MLD, ri, r, iface.mld, IDBM_SHOW, num, 1);
+		__recinfo_uint32(IFACE_ND_REACHABLE_TMO, ri, r,
+				 iface.nd_reachable_tmo, IDBM_SHOW, num, 1);
+		__recinfo_uint32(IFACE_ND_REXMIT_TIME, ri, r,
+				 iface.nd_rexmit_time, IDBM_SHOW, num, 1);
+		__recinfo_uint32(IFACE_ND_STALE_TMO, ri, r, iface.nd_stale_tmo,
+				 IDBM_SHOW, num, 1);
+		__recinfo_uint32(IFACE_RTR_ADV_LINK_MTU, ri, r,
+				 iface.router_adv_link_mtu, IDBM_SHOW, num, 1);
+		__recinfo_uint8(IFACE_TRAFFIC_CLASS, ri, r, iface.traffic_class,
+				IDBM_SHOW, num, 1);
+	}
+
+	__recinfo_str(IFACE_DELAYED_ACK, ri, r, iface.delayed_ack, IDBM_SHOW,
+		      num, 1);
+	__recinfo_str(IFACE_TCP_NAGLE, ri, r, iface.nagle, IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_TCP_WSF_STATE, ri, r, iface.tcp_wsf_state,
+		      IDBM_SHOW, num, 1);
+	__recinfo_uint8(IFACE_TCP_WSF, ri, r, iface.tcp_wsf, IDBM_SHOW, num, 1);
+	__recinfo_uint8(IFACE_TCP_TIMER_SCALE, ri, r, iface.tcp_timer_scale,
+			IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_TCP_TIMESTAMP, ri, r, iface.tcp_timestamp,
+		      IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_REDIRECT, ri, r, iface.redirect, IDBM_SHOW, num, 1);
+	__recinfo_uint16(IFACE_DEF_TMF_TMO, ri, r, iface.def_task_mgmt_tmo,
+			 IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_HDRDGST, ri, r, iface.header_digest, IDBM_SHOW,
+		      num, 1);
+	__recinfo_str(IFACE_DATADGST, ri, r, iface.data_digest, IDBM_SHOW,
+		      num, 1);
+	__recinfo_str(IFACE_IMM_DATA, ri, r, iface.immediate_data, IDBM_SHOW,
+		      num, 1);
+	__recinfo_str(IFACE_INITIAL_R2T, ri, r, iface.initial_r2t, IDBM_SHOW,
+		      num, 1);
+	__recinfo_str(IFACE_DSEQ_INORDER, ri, r, iface.data_seq_inorder,
+		      IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_DPDU_INORDER, ri, r, iface.data_pdu_inorder,
+		      IDBM_SHOW, num, 1);
+	__recinfo_uint8(IFACE_ERL, ri, r, iface.erl, IDBM_SHOW, num, 1);
+	__recinfo_uint32(IFACE_MAX_RECV_DLEN, ri, r, iface.max_recv_dlength,
+			 IDBM_SHOW, num, 1);
+	__recinfo_uint32(IFACE_FIRST_BURST, ri, r, iface.first_burst_len,
+			 IDBM_SHOW, num, 1);
+	__recinfo_uint16(IFACE_MAX_R2T, ri, r, iface.max_out_r2t, IDBM_SHOW,
+			 num, 1);
+	__recinfo_uint32(IFACE_MAX_BURST, ri, r, iface.max_burst_len, IDBM_SHOW,
+			 num, 1);
+	__recinfo_str(IFACE_CHAP_AUTH, ri, r, iface.chap_auth, IDBM_SHOW,
+		      num, 1);
+	__recinfo_str(IFACE_BIDI_CHAP, ri, r, iface.bidi_chap, IDBM_SHOW,
+		      num, 1);
+	__recinfo_str(IFACE_STRICT_LOGIN_COMP, ri, r, iface.strict_login_comp,
+		      IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_DISCOVERY_AUTH, ri, r, iface.discovery_auth,
+		      IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_DISCOVERY_LOGOUT, ri, r, iface.discovery_logout,
+		      IDBM_SHOW, num, 1);
+
 
 	__recinfo_str(NODE_DISC_ADDR, ri, r, disc_address, IDBM_SHOW,
 		      num, 0);
@@ -425,6 +524,9 @@ idbm_recinfo_node(node_rec_t *r, recinfo_t *ri)
 void idbm_recinfo_iface(iface_rec_t *r, recinfo_t *ri)
 {
 	int num = 0;
+	int iface_type;
+
+	iface_type = iface_get_iptype(r);
 
 	__recinfo_str(IFACE_ISCSINAME, ri, r, name, IDBM_SHOW, num, 0);
 	__recinfo_str(IFACE_NETNAME, ri, r, netdev, IDBM_SHOW, num, 1);
@@ -433,19 +535,6 @@ void idbm_recinfo_iface(iface_rec_t *r, recinfo_t *ri)
 	__recinfo_str(IFACE_TRANSPORTNAME, ri, r, transport_name,
 		      IDBM_SHOW, num, 1);
 	__recinfo_str(IFACE_INAME, ri, r, iname, IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_BOOT_PROTO, ri, r, bootproto, IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_SUBNET_MASK, ri, r, subnet_mask,
-		      IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_GATEWAY, ri, r, gateway, IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_IPV6_AUTOCFG, ri, r, ipv6_autocfg,
-		      IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_LINKLOCAL_AUTOCFG, ri, r, linklocal_autocfg,
-		      IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_ROUTER_AUTOCFG, ri, r, router_autocfg,
-		      IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_LINKLOCAL, ri, r, ipv6_linklocal,
-		      IDBM_SHOW, num, 1);
-	__recinfo_str(IFACE_ROUTER, ri, r, ipv6_router, IDBM_SHOW, num, 1);
 	__recinfo_str(IFACE_STATE, ri, r, state, IDBM_SHOW, num, 1);
 	__recinfo_uint16(IFACE_VLAN_ID, ri, r, vlan_id, IDBM_SHOW, num, 1);
 	__recinfo_uint8(IFACE_VLAN_PRIORITY, ri, r, vlan_priority,
@@ -454,9 +543,110 @@ void idbm_recinfo_iface(iface_rec_t *r, recinfo_t *ri)
 	__recinfo_int(IFACE_NUM, ri, r, iface_num, IDBM_SHOW, num, 1);
 	__recinfo_uint16(IFACE_MTU, ri, r, mtu, IDBM_SHOW, num, 1);
 	__recinfo_uint16(IFACE_PORT, ri, r, port, IDBM_SHOW, num, 1);
+
+	if (iface_type == ISCSI_IFACE_TYPE_IPV4) {
+		__recinfo_str(IFACE_BOOT_PROTO, ri, r, bootproto, IDBM_SHOW,
+			      num, 1);
+		__recinfo_str(IFACE_SUBNET_MASK, ri, r, subnet_mask, IDBM_SHOW,
+			      num, 1);
+		__recinfo_str(IFACE_GATEWAY, ri, r, gateway, IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_DHCP_ALT_CID, ri, r,
+			      dhcp_alt_client_id_state, IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_DHCP_ALT_CID_STR, ri, r, dhcp_alt_client_id,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_DHCP_DNS, ri, r, dhcp_dns, IDBM_SHOW,
+			      num, 1);
+		__recinfo_str(IFACE_DHCP_LEARN_IQN, ri, r, dhcp_learn_iqn,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_DHCP_REQ_VID, ri, r,
+			      dhcp_req_vendor_id_state, IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_DHCP_VID, ri, r, dhcp_vendor_id_state,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_DHCP_VID_STR, ri, r, dhcp_vendor_id,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_DHCP_SLP_DA, ri, r, dhcp_slp_da, IDBM_SHOW,
+			      num, 1);
+		__recinfo_str(IFACE_FRAGMENTATION, ri, r, fragmentation,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_GRAT_ARP, ri, r, gratuitous_arp, IDBM_SHOW,
+			      num, 1);
+		__recinfo_str(IFACE_IN_FORWARD, ri, r, incoming_forwarding,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_TOS_STATE, ri, r, tos_state, IDBM_SHOW,
+			      num, 1);
+		__recinfo_uint8(IFACE_TOS, ri, r, tos, IDBM_SHOW, num, 1);
+		__recinfo_uint8(IFACE_TTL, ri, r, ttl, IDBM_SHOW, num, 1);
+	} else if (iface_type == ISCSI_IFACE_TYPE_IPV6) {
+		__recinfo_str(IFACE_IPV6_AUTOCFG, ri, r, ipv6_autocfg,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_LINKLOCAL_AUTOCFG, ri, r, linklocal_autocfg,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_ROUTER_AUTOCFG, ri, r, router_autocfg,
+			      IDBM_SHOW, num, 1);
+		__recinfo_str(IFACE_LINKLOCAL, ri, r, ipv6_linklocal, IDBM_SHOW,
+			      num, 1);
+		__recinfo_str(IFACE_ROUTER, ri, r, ipv6_router, IDBM_SHOW,
+			      num, 1);
+		__recinfo_uint8(IFACE_DUP_ADDR_DETECT_CNT, ri, r,
+				dup_addr_detect_cnt, IDBM_SHOW, num, 1);
+		__recinfo_uint32(IFACE_FLOW_LABEL, ri, r, flow_label, IDBM_SHOW,
+				 num, 1);
+		__recinfo_str(IFACE_GRAT_NEIGHBOR_ADV, ri, r,
+			      gratuitous_neighbor_adv, IDBM_SHOW, num, 1);
+		__recinfo_uint8(IFACE_HOP_LIMIT, ri, r, hop_limit, IDBM_SHOW,
+				num, 1);
+		__recinfo_str(IFACE_MLD, ri, r, mld, IDBM_SHOW, num, 1);
+		__recinfo_uint32(IFACE_ND_REACHABLE_TMO, ri, r,
+				 nd_reachable_tmo, IDBM_SHOW, num, 1);
+		__recinfo_uint32(IFACE_ND_REXMIT_TIME, ri, r, nd_rexmit_time,
+				 IDBM_SHOW, num, 1);
+		__recinfo_uint32(IFACE_ND_STALE_TMO, ri, r, nd_stale_tmo,
+				 IDBM_SHOW, num, 1);
+		__recinfo_uint32(IFACE_RTR_ADV_LINK_MTU, ri, r,
+				 router_adv_link_mtu, IDBM_SHOW, num, 1);
+		__recinfo_uint8(IFACE_TRAFFIC_CLASS, ri, r, traffic_class,
+				IDBM_SHOW, num, 1);
+	}
+
+	__recinfo_str(IFACE_DELAYED_ACK, ri, r, delayed_ack, IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_TCP_NAGLE, ri, r, nagle, IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_TCP_WSF_STATE, ri, r, tcp_wsf_state, IDBM_SHOW,
+		      num, 1);
+	__recinfo_uint8(IFACE_TCP_WSF, ri, r, tcp_wsf, IDBM_SHOW, num, 1);
+	__recinfo_uint8(IFACE_TCP_TIMER_SCALE, ri, r, tcp_timer_scale,
+			IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_TCP_TIMESTAMP, ri, r, tcp_timestamp, IDBM_SHOW,
+		      num, 1);
+	__recinfo_str(IFACE_REDIRECT, ri, r, redirect, IDBM_SHOW, num, 1);
+	__recinfo_uint16(IFACE_DEF_TMF_TMO, ri, r, def_task_mgmt_tmo, IDBM_SHOW,
+			 num, 1);
+	__recinfo_str(IFACE_HDRDGST, ri, r, header_digest, IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_DATADGST, ri, r, data_digest, IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_IMM_DATA, ri, r, immediate_data, IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_INITIAL_R2T, ri, r, initial_r2t, IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_DSEQ_INORDER, ri, r, data_seq_inorder, IDBM_SHOW,
+		      num, 1);
+	__recinfo_str(IFACE_DPDU_INORDER, ri, r, data_pdu_inorder, IDBM_SHOW,
+		      num, 1);
+	__recinfo_uint8(IFACE_ERL, ri, r, erl, IDBM_SHOW, num, 1);
+	__recinfo_uint32(IFACE_MAX_RECV_DLEN, ri, r, max_recv_dlength,
+			 IDBM_SHOW, num, 1);
+	__recinfo_uint32(IFACE_FIRST_BURST, ri, r, first_burst_len, IDBM_SHOW,
+			 num, 1);
+	__recinfo_uint16(IFACE_MAX_R2T, ri, r, max_out_r2t, IDBM_SHOW, num, 1);
+	__recinfo_uint32(IFACE_MAX_BURST, ri, r, max_burst_len, IDBM_SHOW,
+			 num, 1);
+	__recinfo_str(IFACE_CHAP_AUTH, ri, r, chap_auth, IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_BIDI_CHAP, ri, r, bidi_chap, IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_STRICT_LOGIN_COMP, ri, r, strict_login_comp,
+		      IDBM_SHOW, num, 1);
+	__recinfo_str(IFACE_DISCOVERY_AUTH, ri, r, discovery_auth, IDBM_SHOW,
+		      num, 1);
+	__recinfo_str(IFACE_DISCOVERY_LOGOUT, ri, r, discovery_logout,
+		      IDBM_SHOW, num, 1);
 }
 
-static void idbm_recinfo_host_chap(struct iscsi_chap_rec *r, recinfo_t *ri)
+void idbm_recinfo_host_chap(struct iscsi_chap_rec *r, recinfo_t *ri)
 {
 	int num = 0;
 
@@ -465,14 +655,14 @@ static void idbm_recinfo_host_chap(struct iscsi_chap_rec *r, recinfo_t *ri)
 
 	if (r->chap_type == CHAP_TYPE_OUT) {
 		__recinfo_str(HOST_AUTH_USERNAME, ri, r, username, IDBM_SHOW,
-			      num, 0);
+			      num, 1);
 		__recinfo_str(HOST_AUTH_PASSWORD, ri, r, password, IDBM_MASKED,
 			      num, 1);
 		__recinfo_int(HOST_AUTH_PASSWORD_LEN, ri, r, password_length,
 			      IDBM_HIDE, num, 1);
 	} else {
 		__recinfo_str(HOST_AUTH_USERNAME_IN, ri, r, username, IDBM_SHOW,
-			      num, 0);
+			      num, 1);
 		__recinfo_str(HOST_AUTH_PASSWORD_IN, ri, r, password,
 			      IDBM_MASKED, num, 1);
 		__recinfo_int(HOST_AUTH_PASSWORD_IN_LEN, ri, r, password_length,
@@ -852,6 +1042,8 @@ updated:
 	check_password_param(discovery.sendtargets.auth.password_in);
 	check_password_param(discovery.slp.auth.password);
 	check_password_param(discovery.slp.auth.password_in);
+	check_password_param(host.auth.password);
+	check_password_param(host.auth.password_in);
 
 	return 0;
 }
@@ -867,7 +1059,7 @@ int idbm_verify_param(recinfo_t *info, char *name)
 		if (strcmp(name, info[i].name))
 			continue;
 
-		log_debug(7, "verify %s %d\n", name, info[i].can_modify);
+		log_debug(7, "verify %s %d", name, info[i].can_modify);
 		if (info[i].can_modify)
 			return 0;
 		else {
@@ -970,20 +1162,20 @@ static void idbm_sync_config(void)
 	idbm_recinfo_node(&db->nrec, db->ninfo);
 
 	if (!db->get_config_file) {
-		log_debug(1, "Could not get config file. No config file fn\n");
+		log_debug(1, "Could not get config file. No config file fn");
 		return;
 	}
 
 	config_file = db->get_config_file();
 	if (!config_file) {
-		log_debug(1, "Could not get config file for sync config\n");
+		log_debug(1, "Could not get config file for sync config");
 		return;
 	}
 
 	f = fopen(config_file, "r");
 	if (!f) {
 		log_debug(1, "cannot open configuration file %s. "
-			  "Default location is %s.\n",
+			  "Default location is %s.",
 			  config_file, CONFIG_FILE);
 		return;
 	}
@@ -1139,7 +1331,7 @@ int idbm_lock(void)
 
 	if (access(LOCK_DIR, F_OK) != 0) {
 		if (mkdir(LOCK_DIR, 0660) != 0) {
-			log_error("Could not open %s: %s\n", LOCK_DIR,
+			log_error("Could not open %s: %s", LOCK_DIR,
 				  strerror(errno));
 			return ISCSI_ERR_IDBM;
 		}
@@ -1219,7 +1411,7 @@ static int __idbm_rec_read(node_rec_t *out_rec, char *conf)
 
 	f = fopen(conf, "r");
 	if (!f) {
-		log_debug(5, "Could not open %s err %s\n", conf,
+		log_debug(5, "Could not open %s err %s", conf,
 			  strerror(errno));
 		rc = ISCSI_ERR_IDBM;
 		goto unlock;
@@ -1361,7 +1553,7 @@ static int idbm_for_each_drec(int type, char *config_root, void *data,
 		    !strcmp(entity_dent->d_name, ".."))
 			continue;
 
-		log_debug(5, "found %s\n", entity_dent->d_name);
+		log_debug(5, "found %s", entity_dent->d_name);
 
 		tmp_port = strchr(entity_dent->d_name, ',');
 		if (!tmp_port)
@@ -1618,7 +1810,7 @@ int idbm_for_each_portal(int *found, void *data, idbm_portal_op_fn *fn,
 		    !strcmp(portal_dent->d_name, ".."))
 			continue;
 
-		log_debug(5, "found %s\n", portal_dent->d_name);
+		log_debug(5, "found %s", portal_dent->d_name);
 		tmp_port = strchr(portal_dent->d_name, ',');
 		if (!tmp_port)
 			continue;
@@ -1660,7 +1852,7 @@ int idbm_for_each_node(int *found, void *data, idbm_node_op_fn *fn)
 		    !strcmp(node_dent->d_name, ".."))
 			continue;
 
-		log_debug(5, "searching %s\n", node_dent->d_name);
+		log_debug(5, "searching %s", node_dent->d_name);
 		curr_rc = fn(found, data, node_dent->d_name);
 		/* less than zero means it was not a match */
 		if (curr_rc > 0 && !rc)
@@ -1736,7 +1928,7 @@ idbm_discovery_read(discovery_rec_t *out_rec, int drec_type,
 	snprintf(portal, PATH_MAX, "%s/%s,%d",
 		 disc_type_to_config_vals[drec_type].config_root,
 		 addr, port);
-	log_debug(5, "Looking for config file %s\n", portal);
+	log_debug(5, "Looking for config file %s", portal);
 
 	rc = idbm_lock();
 	if (rc)
@@ -1745,7 +1937,7 @@ idbm_discovery_read(discovery_rec_t *out_rec, int drec_type,
 	f = idbm_open_rec_r(portal,
 			    disc_type_to_config_vals[drec_type].config_name);
 	if (!f) {
-		log_debug(1, "Could not open %s: %s\n", portal,
+		log_debug(1, "Could not open %s: %s", portal,
 			  strerror(errno));
 		rc = ISCSI_ERR_IDBM;
 		goto unlock;
@@ -1775,7 +1967,7 @@ static FILE *idbm_open_rec_w(char *portal, char *config)
 	FILE *f;
 	int err;
 
-	log_debug(5, "Looking for config file %s\n", portal);
+	log_debug(5, "Looking for config file %s", portal);
 
 	err = stat(portal, &statb);
 	if (err)
@@ -1787,14 +1979,14 @@ static FILE *idbm_open_rec_w(char *portal, char *config)
 		 */
 		if (unlink(portal)) {
 			log_error("Could not convert %s to %s/%s. "
-				 "err %d\n", portal, portal,
+				 "err %d", portal, portal,
 				  config, errno);
 			return NULL;
 		}
 
 mkdir_portal:
 		if (mkdir(portal, 0660) != 0) {
-			log_error("Could not make dir %s err %d\n",
+			log_error("Could not make dir %s err %d",
 				  portal, errno);
 			return NULL;
 		}
@@ -1804,7 +1996,7 @@ mkdir_portal:
 	strlcat(portal, config, PATH_MAX);
 	f = fopen(portal, "w");
 	if (!f)
-		log_error("Could not open %s err %d\n", portal, errno);
+		log_error("Could not open %s err %d", portal, errno);
 	return f;
 }
 
@@ -1817,14 +2009,14 @@ static int idbm_rec_write(node_rec_t *rec)
 
 	portal = malloc(PATH_MAX);
 	if (!portal) {
-		log_error("Could not alloc portal\n");
+		log_error("Could not alloc portal");
 		return ISCSI_ERR_NOMEM;
 	}
 
 	snprintf(portal, PATH_MAX, "%s", NODE_CONFIG_DIR);
 	if (access(portal, F_OK) != 0) {
 		if (mkdir(portal, 0660) != 0) {
-			log_error("Could not make %s: %s\n", portal,
+			log_error("Could not make %s: %s", portal,
 				  strerror(errno));
 			rc = ISCSI_ERR_IDBM;
 			goto free_portal;
@@ -1834,7 +2026,7 @@ static int idbm_rec_write(node_rec_t *rec)
 	snprintf(portal, PATH_MAX, "%s/%s", NODE_CONFIG_DIR, rec->name);
 	if (access(portal, F_OK) != 0) {
 		if (mkdir(portal, 0660) != 0) {
-			log_error("Could not make %s: %s\n", portal,
+			log_error("Could not make %s: %s", portal,
 				  strerror(errno));
 			rc = ISCSI_ERR_IDBM;
 			goto free_portal;
@@ -1877,7 +2069,7 @@ static int idbm_rec_write(node_rec_t *rec)
 		 * Old style portal as a file, but with tpgt. Let's update it.
 		 */
 		if (unlink(portal)) {
-			log_error("Could not convert %s: %s\n", portal,
+			log_error("Could not convert %s: %s", portal,
 				  strerror(errno));
 			rc = ISCSI_ERR_IDBM;
 			goto unlock;
@@ -1892,7 +2084,7 @@ mkdir_portal:
 		 rec->name, rec->conn[0].address, rec->conn[0].port, rec->tpgt);
 	if (stat(portal, &statb)) {
 		if (mkdir(portal, 0660) != 0) {
-			log_error("Could not make dir %s: %s\n",
+			log_error("Could not make dir %s: %s",
 				  portal, strerror(errno));
 			rc = ISCSI_ERR_IDBM;
 			goto unlock;
@@ -1905,7 +2097,7 @@ mkdir_portal:
 open_conf:
 	f = fopen(portal, "w");
 	if (!f) {
-		log_error("Could not open %s: %sd\n", portal, strerror(errno));
+		log_error("Could not open %s: %s", portal, strerror(errno));
 		rc = ISCSI_ERR_IDBM;
 		goto unlock;
 	}
@@ -1931,7 +2123,7 @@ idbm_discovery_write(discovery_rec_t *rec)
 
 	portal = malloc(PATH_MAX);
 	if (!portal) {
-		log_error("Could not alloc portal\n");
+		log_error("Could not alloc portal");
 		return ISCSI_ERR_NOMEM;
 	}
 
@@ -1943,7 +2135,7 @@ idbm_discovery_write(discovery_rec_t *rec)
 		 disc_type_to_config_vals[rec->type].config_root);
 	if (access(portal, F_OK) != 0) {
 		if (mkdir(portal, 0660) != 0) {
-			log_error("Could not make %s: %s\n", portal,
+			log_error("Could not make %s: %s", portal,
 				  strerror(errno));
 			rc = ISCSI_ERR_IDBM;
 			goto unlock;
@@ -1957,7 +2149,7 @@ idbm_discovery_write(discovery_rec_t *rec)
 	f = idbm_open_rec_w(portal,
 			    disc_type_to_config_vals[rec->type].config_name);
 	if (!f) {
-		log_error("Could not open %s: %s\n", portal, strerror(errno));
+		log_error("Could not open %s: %s", portal, strerror(errno));
 		rc = ISCSI_ERR_IDBM;
 		goto unlock;
 	}
@@ -2329,10 +2521,10 @@ int idbm_delete_discovery(discovery_rec_t *drec)
 	snprintf(portal, PATH_MAX, "%s/%s,%d",
 		 disc_type_to_config_vals[drec->type].config_root,
 		 drec->address, drec->port);
-	log_debug(5, "Removing config file %s\n", portal);
+	log_debug(5, "Removing config file %s", portal);
 
 	if (stat(portal, &statb)) {
-		log_debug(5, "Could not stat %s to delete disc err %d\n",
+		log_debug(5, "Could not stat %s to delete disc err %d",
 			  portal, errno);
 		goto free_portal;
 	}
@@ -2345,7 +2537,7 @@ int idbm_delete_discovery(discovery_rec_t *drec)
 	}
 
 	if (unlink(portal))
-		log_debug(5, "Could not remove %s err %d\n", portal, errno);
+		log_debug(5, "Could not remove %s err %d", portal, errno);
 
 	memset(portal, 0, PATH_MAX);
 	snprintf(portal, PATH_MAX, "%s/%s,%d",
@@ -2395,7 +2587,7 @@ static int idbm_remove_disc_to_node_link(node_rec_t *rec,
 		goto done;
 	}
 
-	log_debug(7, "found drec %s %d\n",
+	log_debug(7, "found drec %s %d",
 		  tmprec->disc_address, tmprec->disc_port);
 	/* rm link from discovery source to node */
 	memset(portal, 0, PATH_MAX);
@@ -2409,7 +2601,7 @@ static int idbm_remove_disc_to_node_link(node_rec_t *rec,
 
 	if (!stat(portal, &statb)) {
 		if (unlink(portal)) {
-			log_error("Could not remove link %s: %s\n",
+			log_error("Could not remove link %s: %s",
 				  portal, strerror(errno));
 			rc = ISCSI_ERR_IDBM;
 		} else
@@ -2446,7 +2638,7 @@ int idbm_delete_node(node_rec_t *rec)
 	memset(portal, 0, PATH_MAX);
 	snprintf(portal, PATH_MAX, "%s/%s/%s,%d", NODE_CONFIG_DIR,
 		 rec->name, rec->conn[0].address, rec->conn[0].port);
-	log_debug(5, "Removing config file %s iface id %s\n",
+	log_debug(5, "Removing config file %s iface id %s",
 		  portal, rec->iface.name);
 
 	rc = idbm_lock();
@@ -2464,14 +2656,14 @@ int idbm_delete_node(node_rec_t *rec)
 	if (!stat(portal, &statb))
 		goto rm_conf;
 
-	log_error("Could not stat %s to delete node: %s\n",
+	log_error("Could not stat %s to delete node: %s",
 		  portal, strerror(errno));
 	rc = ISCSI_ERR_IDBM;
 	goto unlock;
 
 rm_conf:
 	if (unlink(portal)) {
-		log_error("Could not remove %s: %s\n", portal, strerror(errno));
+		log_error("Could not remove %s: %s", portal, strerror(errno));
 		rc = ISCSI_ERR_IDBM;
 		goto unlock;
 	}
@@ -2649,7 +2841,7 @@ int idbm_init(idbm_get_config_file_fn *fn)
 	/* make sure root db dir is there */
 	if (access(ISCSI_CONFIG_ROOT, F_OK) != 0) {
 		if (mkdir(ISCSI_CONFIG_ROOT, 0660) != 0) {
-			log_error("Could not make %s %d\n", ISCSI_CONFIG_ROOT,
+			log_error("Could not make %s %d", ISCSI_CONFIG_ROOT,
 				   errno);
 			return errno;
 		}

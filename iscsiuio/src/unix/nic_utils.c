@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009-2011, Broadcom Corporation
+ * Copyright (c) 2014, QLogic Corporation
  *
  * Written by:  Benjamin Li  (benli@broadcom.com)
  *
@@ -871,6 +872,7 @@ error:
 
 void prepare_nic_thread(nic_t *nic)
 {
+	pthread_attr_t attr;
 	int rc;
 
 	pthread_mutex_lock(&nic->nic_mutex);
@@ -881,7 +883,9 @@ void prepare_nic_thread(nic_t *nic)
 		LOG_INFO(PFX "%s: spinning up thread for nic", nic->log_name);
 
 		/*  Try to spin up the nic thread */
-		rc = pthread_create(&nic->thread, NULL, nic_loop, nic);
+		pthread_attr_init(&attr);
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+		rc = pthread_create(&nic->thread, &attr, nic_loop, nic);
 		if (rc != 0) {
 			LOG_ERR(PFX "%s: Couldn't create thread for nic",
 				nic->log_name);
@@ -969,9 +973,9 @@ int nic_enable(nic_t *nic)
 /**
  *  nic_disable() - Function used to disable the NIC
  *  @param nic - NIC to disble
- *  @return 0 on success, <0 on failure
+ *  @return void
  */
-int nic_disable(nic_t *nic, int going_down)
+void nic_disable(nic_t *nic, int going_down)
 {
 	if (nic->state == NIC_STARTED_RUNNING ||
 	    nic->state == NIC_RUNNING) {
@@ -992,6 +996,12 @@ int nic_disable(nic_t *nic, int going_down)
 
 		/* Convert from timeval to timespec */
 		rc = gettimeofday(&tp, NULL);
+		if (rc) {
+			LOG_ERR("gettimeofday failed, should never happen: %d\n", errno);
+			pthread_mutex_unlock(&nic->nic_mutex);
+			return;
+		}
+
 		ts.tv_sec = tp.tv_sec;
 		ts.tv_nsec = tp.tv_usec * 1000;
 		ts.tv_sec += 5;	/*  TODO: hardcoded wait for 5 seconds */
@@ -999,16 +1009,18 @@ int nic_disable(nic_t *nic, int going_down)
 		/*  Wait for the device to be disabled */
 		rc = pthread_cond_timedwait(&nic->disable_wait_cond,
 					    &nic->nic_mutex, &ts);
+		if (rc) {
+			LOG_ERR("cond_timedwait failed, should never happen: %d\n", errno);
+		}
+
 		pthread_mutex_unlock(&nic->nic_mutex);
 
 		LOG_DEBUG(PFX "%s: device disabled", nic->log_name);
 
-		return 0;
 	} else {
 		LOG_WARN(PFX "%s: device already disabled: "
 			 "flag: 0x%x state: 0x%x",
 			 nic->log_name, nic->flags, nic->state);
-		return -EALREADY;
 	}
 }
 

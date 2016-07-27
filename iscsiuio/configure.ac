@@ -1,6 +1,7 @@
 dnl iscsiuio uIP user space stack configure.ac file
 dnl
 dnl Copyright (c) 2004-2013 Broadcom Corporation
+dnl Copyright (c) 2014, QLogic Corporation
 dnl
 dnl This program is free software; you can redistribute it and/or modify
 dnl it under the terms of the GNU General Public License as published by
@@ -11,11 +12,11 @@ dnl             Benjamin Li  (benli@broadcom.com)
 dnl
 
 PACKAGE=iscsiuio
-VERSION=0.7.8.1b
+VERSION=0.7.8.2
 
-AC_INIT(iscsiuio, 0.7.8.1b, eddie.wai@broadcom.com)
+AC_INIT([iscsiuio], [0.7.8.2], [QLogic-Storage-Upstream@qlogic.com])
 
-AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
+AM_INIT_AUTOMAKE
 AC_CONFIG_HEADER(config.h)
 AC_PATH_PROGS(BASH, bash)
 
@@ -52,7 +53,8 @@ AC_LIBTOOL_DLOPEN
 # libtool stuff
 AC_PROG_LIBTOOL
 
-CFLAGS="-O2 -Wall"
+: ${CFLAGS:="-O2"}
+CFLAGS="${CFLAGS} -Wall"
 ## check for --enable-debug first before checking CFLAGS before
 ## so that we don't mix -O and -g
 AC_ARG_ENABLE(debug,

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Broadcom Corporation
+ * Copyright (c) 2014, QLogic Corporation
  *
  * Written by:  Eddie Wai  (eddie.wai@broadcom.com)
  *              Based on Kevin Tran's iSCSI boot code
@@ -91,7 +92,7 @@ int iscsiL2AddMcAddr(struct ipv6_context *context,
 {
 	int i;
 	struct mac_address *mc_addr;
-	const struct mac_address all_zeroes_mc = { { 0, 0, 0, 0, 0, 0 } };
+	const struct mac_address all_zeroes_mc = { { { 0, 0, 0, 0, 0, 0 } } };
 
 	mc_addr = context->mc_addr;
 	for (i = 0; i < MAX_MCADDR_TABLE; i++, mc_addr++)

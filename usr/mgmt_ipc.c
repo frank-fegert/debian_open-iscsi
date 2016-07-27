@@ -36,6 +36,7 @@
 #include "sysdeps.h"
 #include "iscsi_ipc.h"
 #include "iscsi_err.h"
+#include "iscsi_util.h"
 
 #define PEERUSER_MAX	64
 #define EXTMSG_MAX	(64 * 1024)
@@ -59,11 +60,7 @@ mgmt_ipc_listen(void)
 		return fd;
 	}
 
-	addr_len = offsetof(struct sockaddr_un, sun_path) + strlen(ISCSIADM_NAMESPACE) + 1;
-
-	memset(&addr, 0, sizeof(addr));
-	addr.sun_family = AF_LOCAL;
-	memcpy((char *) &addr.sun_path + 1, ISCSIADM_NAMESPACE, addr_len);
+	addr_len = setup_abstract_addr(&addr, ISCSIADM_NAMESPACE);
 
 	if ((err = bind(fd, (struct sockaddr *) &addr, addr_len)) < 0 ) {
 		log_error("Can not bind IPC socket");
@@ -467,7 +464,6 @@ mgmt_ipc_write_rsp(queue_task_t *qtask, int err)
 	qtask->rsp.err = err;
 	if (write(qtask->mgmt_ipc_fd, &qtask->rsp, sizeof(qtask->rsp)) < 0)
 		log_error("IPC qtask write failed: %s", strerror(errno));
-	close(qtask->mgmt_ipc_fd);
 	mgmt_ipc_destroy_queue_task(qtask);
 }
 

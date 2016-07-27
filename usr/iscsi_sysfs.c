@@ -137,7 +137,7 @@ static int read_transports(void)
 			if (list_empty(&t->list))
 				free(t);
 			else
-				log_error("Could not update %s.\n",
+				log_error("Could not update %s.",
 					  t->name);
 			continue;
 		}
@@ -147,7 +147,7 @@ static int read_transports(void)
 			if (list_empty(&t->list))
 				free(t);
 			else
-				log_error("Could not update %s.\n",
+				log_error("Could not update %s.",
 					  t->name);
 			continue;
 		}
@@ -272,7 +272,7 @@ uint32_t iscsi_sysfs_get_host_no_from_sid(uint32_t sid, int *err)
 	if (!sysfs_lookup_devpath_by_subsys_id(devpath, sizeof(devpath),
 					       ISCSI_SESSION_SUBSYS, id)) {
 		log_error("Could not lookup devpath for %s. Possible sysfs "
-			  "incompatibility.\n", id);
+			  "incompatibility.", id);
 		*err = ISCSI_ERR_SYSFS_LOOKUP;
 		return 0;
 	}
@@ -280,7 +280,7 @@ uint32_t iscsi_sysfs_get_host_no_from_sid(uint32_t sid, int *err)
 	session_dev = sysfs_device_get(devpath);
 	if (!session_dev) {
 		log_error("Could not get dev for %s. Possible sysfs "
-			  "incompatibility.\n", id);
+			  "incompatibility.", id);
 		*err = ISCSI_ERR_SYSFS_LOOKUP;
 		return 0;
 	}
@@ -305,7 +305,7 @@ uint32_t iscsi_sysfs_get_host_no_from_sid(uint32_t sid, int *err)
 
 		if (!host_dev) {
 			log_error("Could not get host dev for %s. Possible "
-				  "sysfs incompatibility.\n", id);
+				  "sysfs incompatibility.", id);
 			*err = ISCSI_ERR_SYSFS_LOOKUP;
 			return 0;
 		}
@@ -601,12 +601,12 @@ int iscsi_sysfs_get_flashnode_info(struct flashnode_rec *fnode,
 	sysfs_get_str(sess_id, ISCSI_FLASHNODE_SUBSYS, "username",
 		      (fnode->sess).username, sizeof((fnode->sess).username));
 	sysfs_get_str(sess_id, ISCSI_FLASHNODE_SUBSYS, "username_in",
-		      (fnode->sess).username,
+		      (fnode->sess).username_in,
 		      sizeof((fnode->sess).username_in));
 	sysfs_get_str(sess_id, ISCSI_FLASHNODE_SUBSYS, "password",
 		      (fnode->sess).password, sizeof((fnode->sess).password));
 	sysfs_get_str(sess_id, ISCSI_FLASHNODE_SUBSYS, "password_in",
-		      (fnode->sess).password,
+		      (fnode->sess).password_in,
 		      sizeof((fnode->sess).password_in));
 	sysfs_get_uint(conn_id, ISCSI_FLASHNODE_SUBSYS, "statsn",
 		       &((fnode->conn[0]).stat_sn));
@@ -741,7 +741,7 @@ static int iscsi_sysfs_read_iface(struct iface_rec *iface, int host_no,
 	ret = sysfs_get_str(host_id, ISCSI_HOST_SUBSYS, "hwaddress",
 			    iface->hwaddress, sizeof(iface->hwaddress));
 	if (ret)
-		log_debug(7, "could not read hwaddress for host%d\n", host_no);
+		log_debug(7, "could not read hwaddress for host%d", host_no);
 
 	if (iface_kern_id)
 		ret = sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
@@ -752,14 +752,14 @@ static int iscsi_sysfs_read_iface(struct iface_rec *iface, int host_no,
 		ret = sysfs_get_str(host_id, ISCSI_HOST_SUBSYS, "ipaddress",
 				    iface->ipaddress, sizeof(iface->ipaddress));
 	if (ret)
-		log_debug(7, "could not read local address for host%d\n",
+		log_debug(7, "could not read local address for host%d",
 			  host_no);
 
 	/* if not found just print out default */
 	ret = sysfs_get_str(host_id, ISCSI_HOST_SUBSYS, "netdev",
 			    iface->netdev, sizeof(iface->netdev));
 	if (ret)
-		log_debug(7, "could not read netdev for host%d\n", host_no);
+		log_debug(7, "could not read netdev for host%d", host_no);
 
 	/*
 	 * For drivers like qla4xxx we can only set the iname at the
@@ -799,7 +799,7 @@ static int iscsi_sysfs_read_iface(struct iface_rec *iface, int host_no,
 			 * global iname so we can just fill it in here.
 			 */
 			log_debug(7, "Could not read initiatorname for "
-				  "host%d\n", host_no);
+				  "host%d", host_no);
 		/* optional so do not return error */
 		ret = 0;
 	}
@@ -825,7 +825,7 @@ static int iscsi_sysfs_read_iface(struct iface_rec *iface, int host_no,
 				    iface->name, sizeof(iface->name));
 		if (ret) {
 			log_debug(7, "could not read iface name for "
-				  "session %s\n", session);
+				  "session %s", session);
 			/*
 			 * if the ifacename file is not there then we are
 			 * using a older kernel and can try to find the
@@ -834,7 +834,7 @@ static int iscsi_sysfs_read_iface(struct iface_rec *iface, int host_no,
 			 */
 			if (iface_get_by_net_binding(iface, iface))
 				log_debug(7, "Could not find iface for session "
-					  "bound to:" iface_fmt "\n",
+					  "bound to:" iface_fmt "",
 					  iface_str(iface));
 		}
 	}
@@ -856,6 +856,71 @@ static int iscsi_sysfs_read_iface(struct iface_rec *iface, int host_no,
 
 		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "subnet",
 			      iface->subnet_mask, sizeof(iface->subnet_mask));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "dhcp_alt_client_id_en",
+			      iface->dhcp_alt_client_id_state,
+			      sizeof(iface->dhcp_alt_client_id_state));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "dhcp_alt_client_id",
+			      iface->dhcp_alt_client_id,
+			      sizeof(iface->dhcp_alt_client_id));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "dhcp_dns_address_en",
+			      iface->dhcp_dns, sizeof(iface->dhcp_dns));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "dhcp_learn_iqn_en",
+			      iface->dhcp_learn_iqn,
+			      sizeof(iface->dhcp_learn_iqn));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "dhcp_req_vendor_id_en",
+			      iface->dhcp_req_vendor_id_state,
+			      sizeof(iface->dhcp_req_vendor_id_state));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "dhcp_use_vendor_id_en",
+			      iface->dhcp_vendor_id_state,
+			      sizeof(iface->dhcp_vendor_id_state));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "dhcp_vendor_id",
+			      iface->dhcp_vendor_id,
+			      sizeof(iface->dhcp_vendor_id));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "dhcp_slp_da_info_en",
+			      iface->dhcp_slp_da, sizeof(iface->dhcp_slp_da));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "fragment_disable",
+			      iface->fragmentation,
+			      sizeof(iface->fragmentation));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "grat_arp_en",
+			      iface->gratuitous_arp,
+			      sizeof(iface->gratuitous_arp));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "incoming_forwarding_en",
+			      iface->incoming_forwarding,
+			      sizeof(iface->incoming_forwarding));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "tos_en",
+			      iface->tos_state, sizeof(iface->tos_state));
+
+		if (sysfs_get_uint8(iface_kern_id, ISCSI_IFACE_SUBSYS,
+				    "tos", &iface->tos))
+			iface->tos = 0;
+
+		if (sysfs_get_uint8(iface_kern_id, ISCSI_IFACE_SUBSYS,
+				    "ttl", &iface->ttl))
+			iface->ttl = 0;
 	} else {
 		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
 			      "ipaddr_autocfg",
@@ -872,6 +937,53 @@ static int iscsi_sysfs_read_iface(struct iface_rec *iface, int host_no,
 		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "router_addr",
 			      iface->ipv6_router,
 			      sizeof(iface->ipv6_router));
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "router_state",
+			      iface->router_autocfg,
+			      sizeof(iface->router_autocfg));
+
+		if (sysfs_get_uint8(iface_kern_id, ISCSI_IFACE_SUBSYS,
+				    "dup_addr_detect_cnt",
+				    &iface->dup_addr_detect_cnt))
+			iface->dup_addr_detect_cnt = 0;
+
+		if (sysfs_get_uint(iface_kern_id, ISCSI_IFACE_SUBSYS,
+				   "flow_label", &iface->flow_label))
+			iface->flow_label = 0;
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			      "grat_neighbor_adv_en",
+			      iface->gratuitous_neighbor_adv,
+			      sizeof(iface->gratuitous_neighbor_adv));
+
+		if (sysfs_get_uint8(iface_kern_id, ISCSI_IFACE_SUBSYS,
+				    "hop_limit", &iface->hop_limit))
+			iface->hop_limit = 0;
+
+		sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "mld_en",
+			      iface->mld, sizeof(iface->mld));
+
+		if (sysfs_get_uint(iface_kern_id, ISCSI_IFACE_SUBSYS,
+				   "nd_reachable_tmo",
+				   &iface->nd_reachable_tmo))
+			iface->nd_reachable_tmo = 0;
+
+		if (sysfs_get_uint(iface_kern_id, ISCSI_IFACE_SUBSYS,
+				   "nd_rexmit_time", &iface->nd_rexmit_time))
+			iface->nd_rexmit_time = 0;
+
+		if (sysfs_get_uint(iface_kern_id, ISCSI_IFACE_SUBSYS,
+				   "nd_stale_tmo", &iface->nd_stale_tmo))
+			iface->nd_stale_tmo = 0;
+
+		if (sysfs_get_uint(iface_kern_id, ISCSI_IFACE_SUBSYS,
+				   "router_adv_link_mtu",
+				   &iface->router_adv_link_mtu))
+			iface->router_adv_link_mtu = 0;
+
+		if (sysfs_get_uint(iface_kern_id, ISCSI_IFACE_SUBSYS,
+				   "traffic_class", &iface->traffic_class))
+			iface->traffic_class = 0;
 	}
 
 	if (sysfs_get_uint16(iface_kern_id, ISCSI_IFACE_SUBSYS, "port",
@@ -887,6 +999,94 @@ static int iscsi_sysfs_read_iface(struct iface_rec *iface, int host_no,
 	if (sysfs_get_uint8(iface_kern_id, ISCSI_IFACE_SUBSYS, "vlan_priority",
 			    &iface->vlan_priority))
 		iface->vlan_priority = UINT8_MAX;
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "vlan_enabled",
+		      iface->vlan_state, sizeof(iface->vlan_state));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "enabled",
+		      iface->state, sizeof(iface->state));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "delayed_ack_en",
+		      iface->delayed_ack, sizeof(iface->delayed_ack));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "tcp_nagle_disable",
+		      iface->nagle, sizeof(iface->nagle));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "tcp_wsf_disable",
+		      iface->tcp_wsf_state, sizeof(iface->tcp_wsf_state));
+
+	if (sysfs_get_uint8(iface_kern_id, ISCSI_IFACE_SUBSYS, "tcp_wsf",
+			    &iface->tcp_wsf))
+		iface->tcp_wsf = 0;
+
+	if (sysfs_get_uint8(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			    "tcp_timer_scale", &iface->tcp_timer_scale))
+		iface->tcp_timer_scale = 0;
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "tcp_timestamp_en",
+		      iface->tcp_timestamp, sizeof(iface->tcp_timestamp));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "redirect_en",
+		      iface->redirect, sizeof(iface->redirect));
+
+	if (sysfs_get_uint16(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			     "def_taskmgmt_tmo", &iface->def_task_mgmt_tmo))
+		iface->def_task_mgmt_tmo = 0;
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "header_digest",
+		      iface->header_digest, sizeof(iface->header_digest));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "data_digest",
+		      iface->data_digest, sizeof(iface->data_digest));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "immediate_data",
+		      iface->immediate_data, sizeof(iface->immediate_data));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "initial_r2t",
+		      iface->initial_r2t, sizeof(iface->initial_r2t));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "data_seq_in_order",
+		      iface->data_seq_inorder, sizeof(iface->data_seq_inorder));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "data_pdu_in_order",
+		      iface->data_pdu_inorder, sizeof(iface->data_pdu_inorder));
+
+	if (sysfs_get_uint8(iface_kern_id, ISCSI_IFACE_SUBSYS, "erl",
+			    &iface->erl))
+		iface->erl = 0;
+
+	if (sysfs_get_uint(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			   "max_recv_dlength", &iface->max_recv_dlength))
+		iface->max_recv_dlength = 0;
+
+	if (sysfs_get_uint(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			   "first_burst_len", &iface->first_burst_len))
+		iface->first_burst_len = 0;
+
+	if (sysfs_get_uint16(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			     "max_outstanding_r2t", &iface->max_out_r2t))
+		iface->max_out_r2t = 0;
+
+	if (sysfs_get_uint(iface_kern_id, ISCSI_IFACE_SUBSYS,
+			   "max_burst_len", &iface->max_burst_len))
+		iface->max_burst_len = 0;
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "chap_auth",
+		      iface->chap_auth, sizeof(iface->chap_auth));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "bidi_chap",
+		      iface->bidi_chap, sizeof(iface->bidi_chap));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "strict_login_comp_en",
+		      iface->strict_login_comp,
+		      sizeof(iface->strict_login_comp));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS,
+		      "discovery_auth_optional",
+		      iface->discovery_auth, sizeof(iface->discovery_auth));
+
+	sysfs_get_str(iface_kern_id, ISCSI_IFACE_SUBSYS, "discovery_logout",
+		      iface->discovery_logout, sizeof(iface->discovery_logout));
 
 	if (sscanf(iface_kern_id, "ipv%d-iface-%u-%u", &iface_type,
 		   &tmp_host_no, &iface_num) == 3)
@@ -1031,7 +1231,7 @@ int iscsi_sysfs_get_sid_from_path(char *session)
 		return sid;
 
 	if (lstat(session, &statb)) {
-		log_error("%s is an invalid session ID or path\n", session);
+		log_error("%s is an invalid session ID or path", session);
 		exit(1);
 	}
 
@@ -1048,7 +1248,7 @@ int iscsi_sysfs_get_sid_from_path(char *session)
 	dev = sysfs_device_get(devpath);
 	if (!dev) {
 		log_error("Could not get dev for %s. Possible sysfs "
-			  "incompatibility.\n", devpath);
+			  "incompatibility.", devpath);
 		return -1;
 	}
 
@@ -1322,7 +1522,7 @@ int iscsi_sysfs_get_device_state(char *state, int host_no, int target, int lun)
 	snprintf(id, sizeof(id), "%d:0:%d:%d", host_no, target, lun);
 	if (sysfs_get_str(id, SCSI_SUBSYS, "state", state,
 			  SCSI_MAX_STATE_VALUE)) {
-		log_debug(3, "Could not read attr state for %s\n", id);
+		log_debug(3, "Could not read attr state for %s", id);
 		return ISCSI_ERR_SYSFS_LOOKUP;
 	}
 
@@ -1343,7 +1543,7 @@ char *iscsi_sysfs_get_blockdev_from_lun(int host_no, int target, int lun)
 	snprintf(id, sizeof(id), "%d:0:%d:%d", host_no, target, lun);
 	if (!sysfs_lookup_devpath_by_subsys_id(devpath, sizeof(devpath),
 					       SCSI_SUBSYS, id)) {
-		log_debug(3, "Could not lookup devpath for %s %s\n",
+		log_debug(3, "Could not lookup devpath for %s %s",
 			  SCSI_SUBSYS, id);
 		return NULL;
 	}
@@ -1371,7 +1571,7 @@ char *iscsi_sysfs_get_blockdev_from_lun(int host_no, int target, int lun)
 		 * 2.6.25 dropped the symlink and now block is a dir.
 		 */
 		if (lstat(path_full, &statbuf)) {
-			log_error("Could not stat block path %s err %d\n",
+			log_error("Could not stat block path %s err %d",
 				  path_full, errno);
 			break;
 		}
@@ -1390,7 +1590,7 @@ char *iscsi_sysfs_get_blockdev_from_lun(int host_no, int target, int lun)
 			/* it should not be this hard should it? :) */
 			blk_dirfd = opendir(path_full);
 			if (!blk_dirfd) {
-				log_debug(3, "Could not open blk path %s\n",
+				log_debug(3, "Could not open blk path %s",
 					  path_full);
 				break;
 			}
@@ -1426,7 +1626,7 @@ static uint32_t get_target_no_from_sid(uint32_t sid, int *err)
 	snprintf(id, sizeof(id), "session%u", sid);
 	if (!sysfs_lookup_devpath_by_subsys_id(devpath, sizeof(devpath),
 					       ISCSI_SESSION_SUBSYS, id)) {
-		log_debug(3, "Could not lookup devpath for %s %s\n",
+		log_debug(3, "Could not lookup devpath for %s %s",
 			  ISCSI_SESSION_SUBSYS, id);
 		return 0;
 	}
@@ -1599,7 +1799,7 @@ int iscsi_sysfs_for_each_device(void *data, int host_no, uint32_t sid,
 	snprintf(id, sizeof(id), "session%u", sid);
 	if (!sysfs_lookup_devpath_by_subsys_id(devpath, sizeof(devpath),
 					       ISCSI_SESSION_SUBSYS, id)) {
-		log_debug(3, "Could not lookup devpath for %s %s\n",
+		log_debug(3, "Could not lookup devpath for %s %s",
 			  ISCSI_SESSION_SUBSYS, id);
 		return ISCSI_ERR_SYSFS_LOOKUP;
 	}
@@ -1683,7 +1883,7 @@ pid_t iscsi_sysfs_scan_host(int hostno, int async)
 		snprintf(id, sizeof(id), ISCSI_HOST_ID, hostno);
 		sysfs_set_param(id, SCSI_HOST_SUBSYS, "scan", write_buf,
 				strlen(write_buf));
-		log_debug(4, "scanning host%d completed\n", hostno);
+		log_debug(4, "scanning host%d completed", hostno);
 	} else if (pid > 0) {
 		log_debug(4, "scanning host%d from pid %d", hostno, pid);
 	} else

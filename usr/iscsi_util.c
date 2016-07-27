@@ -25,15 +25,27 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
 
+#include "sysdeps.h"
 #include "log.h"
 #include "iscsi_settings.h"
 #include "iface.h"
 #include "session_info.h"
 #include "iscsi_util.h"
+
+int setup_abstract_addr(struct sockaddr_un *addr, char *unix_sock_name)
+{
+	memset(addr, 0, sizeof(*addr));
+	addr->sun_family = AF_LOCAL;
+	strlcpy(addr->sun_path + 1, unix_sock_name, sizeof(addr->sun_path) - 1);
+	return offsetof(struct sockaddr_un, sun_path) +
+		strlen(addr->sun_path + 1) + 1;
+}
 
 void daemon_init(void)
 {
@@ -136,10 +148,10 @@ int increase_max_files(void)
 
 	err = getrlimit(RLIMIT_NOFILE, &rl);
 	if (err) {
-		log_debug(1, "Could not get file limit (err %d)\n", errno);
+		log_debug(1, "Could not get file limit (err %d)", errno);
 		return errno;
 	}
-	log_debug(1, "Max file limits %lu %lu\n", rl.rlim_cur, rl.rlim_max);
+	log_debug(1, "Max file limits %lu %lu", rl.rlim_cur, rl.rlim_max);
 
 	if (rl.rlim_cur < ISCSI_MAX_FILES)
 		rl.rlim_cur = ISCSI_MAX_FILES;
@@ -148,7 +160,7 @@ int increase_max_files(void)
 
 	err = setrlimit(RLIMIT_NOFILE, &rl);
 	if (err) {
-		log_debug(1, "Could not set file limit to %lu/%lu (err %d)\n",
+		log_debug(1, "Could not set file limit to %lu/%lu (err %d)",
 			  rl.rlim_cur, rl.rlim_max, errno);
 		return errno;
 	}
@@ -307,7 +319,7 @@ int __iscsi_match_session(node_rec_t *rec, char *targetname,
 			  unsigned sid)
 {
 	if (!rec) {
-		log_debug(6, "no rec info to match\n");
+		log_debug(6, "no rec info to match");
 		return 1;
 	}
 

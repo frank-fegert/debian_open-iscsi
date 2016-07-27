@@ -69,7 +69,8 @@ enum iscsiadm_mode {
 	MODE_FW,
 	MODE_PING,
 	MODE_CHAP,
-	MODE_FLASHNODE
+	MODE_FLASHNODE,
+	MODE_HOST_STATS
 };
 
 enum iscsiadm_op {
@@ -115,7 +116,7 @@ static struct option const long_options[] =
 	{"packetsize", required_argument, NULL, 'b'},
 	{"count", required_argument, NULL, 'c'},
 	{"interval", required_argument, NULL, 'i'},
-	{"flashnode_idx", optional_argument, NULL, 'x'},
+	{"index", required_argument, NULL, 'x'},
 	{"portal_type", optional_argument, NULL, 'A'},
 	{NULL, 0, NULL, 0},
 };
@@ -136,7 +137,7 @@ iscsiadm -m node [ -hV ] [ -d debug_level ] [ -P printlevel ] [ -L all,manual,au
 iscsiadm -m session [ -hV ] [ -d debug_level ] [ -P  printlevel] [ -r sessionid | sysfsdir [ -R | -u | -s ] [ -o operation ] [ -n name ] [ -v value ] ]\n\
 iscsiadm -m iface [ -hV ] [ -d debug_level ] [ -P printlevel ] [ -I ifacename | -H hostno|MAC ] [ [ -o  operation  ] [ -n name ] [ -v value ] ] [ -C ping [ -a ip ] [ -b packetsize ] [ -c count ] [ -i interval ] ]\n\
 iscsiadm -m fw [ -d debug_level ] [ -l ]\n\
-iscsiadm -m host [ -P printlevel ] [ -H hostno|MAC ] [ [ -C chap [ -o operation ] [ -v chap_tbl_idx ] ] | [ -C flashnode [ -o operation ] [ -A portal_type ] [ -x flashnode_idx ] [ -n name ] [ -v value ] ] ]\n\
+iscsiadm -m host [ -P printlevel ] [ -H hostno|MAC ] [ [ -C chap [ -x chap_tbl_idx ] ] | [ -C flashnode [ -A portal_type ] [ -x flashnode_idx ] ] | [ -C stats ] ] [ [ -o operation ] [ -n name ] [ -v value ] ] \n\
 iscsiadm -k priority\n");
 	}
 	exit(status);
@@ -207,6 +208,9 @@ str_to_submode(char *str)
 		sub_mode = MODE_CHAP;
 	else if (!strcmp("flashnode", str))
 		sub_mode = MODE_FLASHNODE;
+	else if (!strcmp("stats", str))
+		sub_mode = MODE_HOST_STATS;
+
 	else
 		sub_mode = -1;
 
@@ -274,7 +278,7 @@ static void kill_iscsid(int priority)
 	if (rc) {
 		iscsi_err_print_msg(rc);
 		log_error("Could not stop iscsid. Trying sending iscsid "
-			  "SIGTERM or SIGKILL signals manually\n");
+			  "SIGTERM or SIGKILL signals manually");
 	}
 }
 
@@ -299,7 +303,7 @@ static int print_ifaces(struct iface_rec *iface, int info_level)
 		if (iface) {
 			err = iface_conf_read(iface);
 			if (err) {
-				log_error("Could not read iface %s.\n",
+				log_error("Could not read iface %s.",
 					  iface->name);
 				return err;
 			}
@@ -399,7 +403,7 @@ __logout_by_startup(void *data, struct list_head *list,
 		 * this is due to a HW driver or some other driver
 		 * not hooked in
 		 */
-		log_debug(7, "could not read data for [%s,%s.%d]\n",
+		log_debug(7, "could not read data for [%s,%s.%d]",
 			  info->targetname, info->persistent_address,
 			  info->persistent_port);
 		return -1;
@@ -1236,7 +1240,7 @@ sw_discovery:
 	case DISCOVERY_TYPE_ISNS:
 		return do_isns(drec, ifaces, info_level, do_login, op);
 	default:
-		log_debug(1, "Unknown Discovery Type : %d\n", drec->type);
+		log_debug(1, "Unknown Discovery Type : %d", drec->type);
 		return ISCSI_ERR_UNKNOWN_DISCOVERY_TYPE;
 	}
 }
@@ -1282,7 +1286,7 @@ static int iface_apply_net_config(struct iface_rec *iface, int op)
 	int fd;
 
 	log_debug(8, "Calling iscsid, to apply net config for"
-		  "iface.name = %s\n", iface->name);
+		  "iface.name = %s", iface->name);
 
 	if (op == OP_APPLY_ALL)
 		iface_all = 1;
@@ -1426,18 +1430,192 @@ exit_chap_info:
 	return rc;
 }
 
-static int delete_host_chap_info(uint32_t host_no, char *value)
+static int fill_host_chap_rec(struct list_head *params,
+			      struct iscsi_chap_rec *crec, recinfo_t *cinfo,
+			      uint16_t chap_tbl_idx, int type, int *param_count)
+{
+	struct user_param *param;
+	int rc = 0;
+
+	crec->chap_tbl_idx = chap_tbl_idx;
+	crec->chap_type = type;
+
+	idbm_recinfo_host_chap(crec, cinfo);
+
+	list_for_each_entry(param, params, list) {
+		rc = idbm_rec_update_param(cinfo, param->name, param->value, 0);
+		if (rc)
+			break;
+	}
+
+	if (!rc)
+		*param_count += 3; /* index, type and password_length */
+
+	return rc;
+}
+
+static int verify_host_chap_params(struct list_head *params, int *type,
+				   int *param_count)
+{
+	struct user_param *param;
+	int username = -1;
+	int password = -1;
+	int rc = 0;
+
+	list_for_each_entry(param, params, list) {
+		*param_count += 1;
+
+		if (!strcmp(param->name, HOST_AUTH_USERNAME))
+			username = CHAP_TYPE_OUT;
+		else if (!strcmp(param->name, HOST_AUTH_PASSWORD))
+			password = CHAP_TYPE_OUT;
+		else if (!strcmp(param->name, HOST_AUTH_USERNAME_IN))
+			username = CHAP_TYPE_IN;
+		else if (!strcmp(param->name, HOST_AUTH_PASSWORD_IN))
+			password = CHAP_TYPE_IN;
+		else
+			continue;
+	}
+
+	if ((username == CHAP_TYPE_OUT) && (password == CHAP_TYPE_OUT)) {
+		if (type)
+			*type = CHAP_TYPE_OUT;
+
+		rc = ISCSI_SUCCESS;
+	} else if ((username == CHAP_TYPE_IN) && (password == CHAP_TYPE_IN)) {
+		if (type)
+			*type = CHAP_TYPE_IN;
+
+		rc = ISCSI_SUCCESS;
+	} else {
+		rc = ISCSI_ERR;
+	}
+
+	return rc;
+}
+
+static int set_host_chap_info(uint32_t host_no, uint64_t chap_index,
+			      struct list_head *params)
+{
+	struct iscsi_transport *t = NULL;
+	struct iscsi_chap_rec crec;
+	recinfo_t *chap_info = NULL;
+	struct iovec *iovs = NULL;
+	struct iovec *iov = NULL;
+	int type;
+	int param_count = 0;
+	int param_used;
+	int rc = 0;
+	int fd, i = 0;
+
+	if (list_empty(params)) {
+		log_error("Chap username/password not provided.");
+		goto exit_set_chap;
+	}
+
+	chap_info = idbm_recinfo_alloc(MAX_KEYS);
+	if (!chap_info) {
+		log_error("Out of Memory.");
+		rc = ISCSI_ERR_NOMEM;
+		goto exit_set_chap;
+	}
+
+	t = iscsi_sysfs_get_transport_by_hba(host_no);
+	if (!t) {
+		log_error("Could not match hostno %d to transport.", host_no);
+		rc = ISCSI_ERR_TRANS_NOT_FOUND;
+		goto free_info_rec;
+	}
+
+	rc = verify_host_chap_params(params, &type, &param_count);
+	if (rc) {
+		log_error("Invalid username/password pair passed. Unable to determine the type of chap entry");
+		rc = ISCSI_ERR_INVAL;
+		goto free_info_rec;
+	}
+
+	if (param_count > 2) {
+		log_error("Only one pair of username/password can be passed.");
+		rc = ISCSI_ERR;
+		goto free_info_rec;
+	}
+
+	memset(&crec, 0, sizeof(crec));
+	rc = fill_host_chap_rec(params, &crec, chap_info, chap_index, type,
+				&param_count);
+	if (rc) {
+		log_error("Unable to fill CHAP record");
+		goto free_info_rec;
+	}
+
+	/* +2 for event and nlmsghdr */
+	param_count += 2;
+	iovs = calloc((param_count * sizeof(struct iovec)),
+		       sizeof(char));
+	if (!iovs) {
+		log_error("Out of Memory.");
+		rc = ISCSI_ERR_NOMEM;
+		goto free_info_rec;
+	}
+
+	/* param_used gives actual number of iovecs used for chap */
+	param_used = chap_build_config(&crec, iovs);
+	if (!param_used) {
+		log_error("Build chap config failed.");
+		rc = ISCSI_ERR;
+		goto free_iovec;
+	}
+
+	fd = ipc->ctldev_open();
+	if (fd < 0) {
+		rc = ISCSI_ERR_INTERNAL;
+		log_error("Netlink open failed.");
+		goto free_iovec;
+	}
+
+	rc = ipc->set_chap(t->handle, host_no, iovs, param_count);
+	if (rc < 0) {
+		log_error("CHAP setting failed");
+		if (rc == -EBUSY) {
+			rc = ISCSI_ERR_BUSY;
+			log_error("CHAP index %d is in use.",
+				  crec.chap_tbl_idx);
+		} else {
+			rc = ISCSI_ERR;
+		}
+
+		goto exit_set_chap;
+	}
+
+	ipc->ctldev_close();
+
+free_iovec:
+	/* start at 2, because 0 is for nlmsghdr and 1 for event */
+	iov = iovs + 2;
+	for (i = 0; i < param_used; i++, iov++) {
+		if (iov->iov_base)
+			free(iov->iov_base);
+	}
+
+	free(iovs);
+
+free_info_rec:
+	if (chap_info)
+		free(chap_info);
+
+exit_set_chap:
+	return rc;
+}
+
+static int delete_host_chap_info(uint32_t host_no, uint16_t chap_tbl_idx)
 {
 	struct iscsi_transport *t = NULL;
 	int fd, rc = 0;
-	uint16_t chap_tbl_idx;
 
-	if (!value) {
-		log_error("CHAP deletion requires --value=table_index.");
-		return ISCSI_ERR_INVAL;
+	if (chap_tbl_idx > MAX_CHAP_ENTRIES) {
+		log_error("Invalid chap table index.");
+		goto exit_delete_chap;
 	}
-
-	chap_tbl_idx = (uint16_t)atoi(value);
 
 	t = iscsi_sysfs_get_transport_by_hba(host_no);
 	if (!t) {
@@ -1454,7 +1632,7 @@ static int delete_host_chap_info(uint32_t host_no, char *value)
 		goto exit_delete_chap;
 	}
 
-	log_info("Deleteing CHAP index: %d\n", chap_tbl_idx);
+	log_info("Deleteing CHAP index: %d", chap_tbl_idx);
 	rc = ipc->delete_chap(t->handle, host_no, chap_tbl_idx);
 	if (rc < 0) {
 		log_error("CHAP Delete failed.");
@@ -1472,7 +1650,7 @@ exit_delete_chap:
 }
 
 static int exec_host_chap_op(int op, int info_level, uint32_t host_no,
-			     char *value)
+			     uint64_t chap_index, struct list_head *params)
 {
 	int rc = ISCSI_ERR_INVAL;
 
@@ -1480,8 +1658,12 @@ static int exec_host_chap_op(int op, int info_level, uint32_t host_no,
 	case OP_SHOW:
 		rc = get_host_chap_info(host_no);
 		break;
+	case OP_NEW:
+	case OP_UPDATE:
+		rc = set_host_chap_info(host_no, chap_index, params);
+		break;
 	case OP_DELETE:
-		rc = delete_host_chap_info(host_no, value);
+		rc = delete_host_chap_info(host_no, chap_index);
 		break;
 	default:
 		log_error("Invalid operation.");
@@ -1844,6 +2026,232 @@ static int exec_flashnode_op(int op, int info_level, uint32_t host_no,
 	}
 
 exit_flashnode_op:
+	return rc;
+}
+
+static void print_host_stats(struct iscsi_offload_host_stats *host_stats)
+{
+	/* MAC */
+	printf("Host Statistics:\n"
+	       "\tmactx_frames: %lld\n"
+	       "\tmactx_bytes: %lld\n"
+	       "\tmactx_multicast_frames: %lld\n"
+	       "\tmactx_broadcast_frames: %lld\n"
+	       "\tmactx_pause_frames: %lld\n"
+	       "\tmactx_control_frames: %lld\n"
+	       "\tmactx_deferral: %lld\n"
+	       "\tmactx_excess_deferral: %lld\n"
+	       "\tmactx_late_collision: %lld\n"
+	       "\tmactx_abort: %lld\n"
+	       "\tmactx_single_collision: %lld\n"
+	       "\tmactx_multiple_collision: %lld\n"
+	       "\tmactx_collision: %lld\n"
+	       "\tmactx_frames_dropped: %lld\n"
+	       "\tmactx_jumbo_frames: %lld\n"
+	       "\tmacrx_frames: %lld\n"
+	       "\tmacrx_bytes: %lld\n"
+	       "\tmacrx_unknown_control_frames: %lld\n"
+	       "\tmacrx_pause_frames: %lld\n"
+	       "\tmacrx_control_frames: %lld\n"
+	       "\tmacrx_dribble: %lld\n"
+	       "\tmacrx_frame_length_error: %lld\n"
+	       "\tmacrx_jabber: %lld\n"
+	       "\tmacrx_carrier_sense_error: %lld\n"
+	       "\tmacrx_frame_discarded: %lld\n"
+	       "\tmacrx_frames_dropped: %lld\n"
+	       "\tmac_crc_error: %lld\n"
+	       "\tmac_encoding_error: %lld\n"
+	       "\tmacrx_length_error_large: %lld\n"
+	       "\tmacrx_length_error_small: %lld\n"
+	       "\tmacrx_multicast_frames: %lld\n"
+	       "\tmacrx_broadcast_frames: %lld\n"
+	       /* IP */
+	       "\tiptx_packets: %lld\n"
+	       "\tiptx_bytes: %lld\n"
+	       "\tiptx_fragments: %lld\n"
+	       "\tiprx_packets: %lld\n"
+	       "\tiprx_bytes: %lld\n"
+	       "\tiprx_fragments: %lld\n"
+	       "\tip_datagram_reassembly: %lld\n"
+	       "\tip_invalid_address_error: %lld\n"
+	       "\tip_error_packets: %lld\n"
+	       "\tip_fragrx_overlap: %lld\n"
+	       "\tip_fragrx_outoforder: %lld\n"
+	       "\tip_datagram_reassembly_timeout: %lld\n"
+	       "\tipv6tx_packets: %lld\n"
+	       "\tipv6tx_bytes: %lld\n"
+	       "\tipv6tx_fragments: %lld\n"
+	       "\tipv6rx_packets: %lld\n"
+	       "\tipv6rx_bytes: %lld\n"
+	       "\tipv6rx_fragments: %lld\n"
+	       "\tipv6_datagram_reassembly: %lld\n"
+	       "\tipv6_invalid_address_error: %lld\n"
+	       "\tipv6_error_packets: %lld\n"
+	       "\tipv6_fragrx_overlap: %lld\n"
+	       "\tipv6_fragrx_outoforder: %lld\n"
+	       "\tipv6_datagram_reassembly_timeout: %lld\n"
+	       /* TCP */
+	       "\ttcptx_segments: %lld\n"
+	       "\ttcptx_bytes: %lld\n"
+	       "\ttcprx_segments: %lld\n"
+	       "\ttcprx_byte: %lld\n"
+	       "\ttcp_duplicate_ack_retx: %lld\n"
+	       "\ttcp_retx_timer_expired: %lld\n"
+	       "\ttcprx_duplicate_ack: %lld\n"
+	       "\ttcprx_pure_ackr: %lld\n"
+	       "\ttcptx_delayed_ack: %lld\n"
+	       "\ttcptx_pure_ack: %lld\n"
+	       "\ttcprx_segment_error: %lld\n"
+	       "\ttcprx_segment_outoforder: %lld\n"
+	       "\ttcprx_window_probe: %lld\n"
+	       "\ttcprx_window_update: %lld\n"
+	       "\ttcptx_window_probe_persist: %lld\n"
+	       /* ECC */
+	       "\tecc_error_correction: %lld\n"
+	       /* iSCSI */
+	       "\tiscsi_pdu_tx: %lld\n"
+	       "\tiscsi_data_bytes_tx: %lld\n"
+	       "\tiscsi_pdu_rx: %lld\n"
+	       "\tiscsi_data_bytes_rx: %lld\n"
+	       "\tiscsi_io_completed: %lld\n"
+	       "\tiscsi_unexpected_io_rx: %lld\n"
+	       "\tiscsi_format_error: %lld\n"
+	       "\tiscsi_hdr_digest_error: %lld\n"
+	       "\tiscsi_data_digest_error: %lld\n"
+	       "\tiscsi_sequence_error: %lld\n",
+	       /* MAC */
+	       (unsigned long long)host_stats->mactx_frames,
+	       (unsigned long long)host_stats->mactx_bytes,
+	       (unsigned long long)host_stats->mactx_multicast_frames,
+	       (unsigned long long)host_stats->mactx_broadcast_frames,
+	       (unsigned long long)host_stats->mactx_pause_frames,
+	       (unsigned long long)host_stats->mactx_control_frames,
+	       (unsigned long long)host_stats->mactx_deferral,
+	       (unsigned long long)host_stats->mactx_excess_deferral,
+	       (unsigned long long)host_stats->mactx_late_collision,
+	       (unsigned long long)host_stats->mactx_abort,
+	       (unsigned long long)host_stats->mactx_single_collision,
+	       (unsigned long long)host_stats->mactx_multiple_collision,
+	       (unsigned long long)host_stats->mactx_collision,
+	       (unsigned long long)host_stats->mactx_frames_dropped,
+	       (unsigned long long)host_stats->mactx_jumbo_frames,
+	       (unsigned long long)host_stats->macrx_frames,
+	       (unsigned long long)host_stats->macrx_bytes,
+	       (unsigned long long)host_stats->macrx_unknown_control_frames,
+	       (unsigned long long)host_stats->macrx_pause_frames,
+	       (unsigned long long)host_stats->macrx_control_frames,
+	       (unsigned long long)host_stats->macrx_dribble,
+	       (unsigned long long)host_stats->macrx_frame_length_error,
+	       (unsigned long long)host_stats->macrx_jabber,
+	       (unsigned long long)host_stats->macrx_carrier_sense_error,
+	       (unsigned long long)host_stats->macrx_frame_discarded,
+	       (unsigned long long)host_stats->macrx_frames_dropped,
+	       (unsigned long long)host_stats->mac_crc_error,
+	       (unsigned long long)host_stats->mac_encoding_error,
+	       (unsigned long long)host_stats->macrx_length_error_large,
+	       (unsigned long long)host_stats->macrx_length_error_small,
+	       (unsigned long long)host_stats->macrx_multicast_frames,
+	       (unsigned long long)host_stats->macrx_broadcast_frames,
+	       /* IP */
+	       (unsigned long long)host_stats->iptx_packets,
+	       (unsigned long long)host_stats->iptx_bytes,
+	       (unsigned long long)host_stats->iptx_fragments,
+	       (unsigned long long)host_stats->iprx_packets,
+	       (unsigned long long)host_stats->iprx_bytes,
+	       (unsigned long long)host_stats->iprx_fragments,
+	       (unsigned long long)host_stats->ip_datagram_reassembly,
+	       (unsigned long long)host_stats->ip_invalid_address_error,
+	       (unsigned long long)host_stats->ip_error_packets,
+	       (unsigned long long)host_stats->ip_fragrx_overlap,
+	       (unsigned long long)host_stats->ip_fragrx_outoforder,
+	       (unsigned long long)host_stats->ip_datagram_reassembly_timeout,
+	       (unsigned long long)host_stats->ipv6tx_packets,
+	       (unsigned long long)host_stats->ipv6tx_bytes,
+	       (unsigned long long)host_stats->ipv6tx_fragments,
+	       (unsigned long long)host_stats->ipv6rx_packets,
+	       (unsigned long long)host_stats->ipv6rx_bytes,
+	       (unsigned long long)host_stats->ipv6rx_fragments,
+	       (unsigned long long)host_stats->ipv6_datagram_reassembly,
+	       (unsigned long long)host_stats->ipv6_invalid_address_error,
+	       (unsigned long long)host_stats->ipv6_error_packets,
+	       (unsigned long long)host_stats->ipv6_fragrx_overlap,
+	       (unsigned long long)host_stats->ipv6_fragrx_outoforder,
+	       (unsigned long long)host_stats->ipv6_datagram_reassembly_timeout,
+	       /* TCP */
+	       (unsigned long long)host_stats->tcptx_segments,
+	       (unsigned long long)host_stats->tcptx_bytes,
+	       (unsigned long long)host_stats->tcprx_segments,
+	       (unsigned long long)host_stats->tcprx_byte,
+	       (unsigned long long)host_stats->tcp_duplicate_ack_retx,
+	       (unsigned long long)host_stats->tcp_retx_timer_expired,
+	       (unsigned long long)host_stats->tcprx_duplicate_ack,
+	       (unsigned long long)host_stats->tcprx_pure_ackr,
+	       (unsigned long long)host_stats->tcptx_delayed_ack,
+	       (unsigned long long)host_stats->tcptx_pure_ack,
+	       (unsigned long long)host_stats->tcprx_segment_error,
+	       (unsigned long long)host_stats->tcprx_segment_outoforder,
+	       (unsigned long long)host_stats->tcprx_window_probe,
+	       (unsigned long long)host_stats->tcprx_window_update,
+	       (unsigned long long)host_stats->tcptx_window_probe_persist,
+	       /* ECC */
+	       (unsigned long long)host_stats->ecc_error_correction,
+	       /* iSCSI */
+	       (unsigned long long)host_stats->iscsi_pdu_tx,
+	       (unsigned long long)host_stats->iscsi_data_bytes_tx,
+	       (unsigned long long)host_stats->iscsi_pdu_rx,
+	       (unsigned long long)host_stats->iscsi_data_bytes_rx,
+	       (unsigned long long)host_stats->iscsi_io_completed,
+	       (unsigned long long)host_stats->iscsi_unexpected_io_rx,
+	       (unsigned long long)host_stats->iscsi_format_error,
+	       (unsigned long long)host_stats->iscsi_hdr_digest_error,
+	       (unsigned long long)host_stats->iscsi_data_digest_error,
+	       (unsigned long long)host_stats->iscsi_sequence_error);
+}
+
+static int exec_host_stats_op(int op, int info_level, uint32_t host_no)
+{
+	struct iscsi_transport *t = NULL;
+	char *req_buf = NULL;
+	int rc = ISCSI_SUCCESS;
+	int fd = 0, buf_size = 0;
+
+	t = iscsi_sysfs_get_transport_by_hba(host_no);
+	if (!t) {
+		log_error("Could not match hostno %u to transport.", host_no);
+		rc = ISCSI_ERR_TRANS_NOT_FOUND;
+		goto exit_host_stats;
+	}
+
+	buf_size = sizeof(struct iscsi_offload_host_stats) +
+		   sizeof(struct iscsi_uevent);
+	req_buf = calloc(1, buf_size);
+	if (!req_buf) {
+		log_error("Could not allocate memory for host stats request.");
+		rc = ISCSI_ERR_NOMEM;
+		goto exit_host_stats;
+	}
+
+	fd = ipc->ctldev_open();
+	if (fd < 0) {
+		rc = ISCSI_ERR_INTERNAL;
+		log_error("Netlink open failed.");
+		goto exit_host_stats;
+	}
+
+	rc = ipc->get_host_stats(t->handle, host_no, req_buf);
+	if (rc < 0) {
+		log_error("get_host_stats failed. errno=%d", errno);
+		rc = ISCSI_ERR;
+		goto exit_host_stats;
+	}
+
+	print_host_stats((struct iscsi_offload_host_stats *)(req_buf +
+			 sizeof(struct iscsi_uevent)));
+
+	ipc->ctldev_close();
+
+exit_host_stats:
+	free(req_buf);
 	return rc;
 }
 
@@ -2241,7 +2649,7 @@ static int exec_fw_disc_op(discovery_rec_t *drec, struct list_head *ifaces,
 	rc = fw_get_targets(&targets);
 	if (rc) {
 		log_error("Could not get list of targets from firmware. "
-			  "(err %d)\n", rc);
+			  "(err %d)", rc);
 		return rc;
 	}
 	rc = iface_create_ifaces_from_boot_contexts(&new_ifaces, &targets);
@@ -2254,7 +2662,7 @@ discover_fw_tgts:
 	rc = idbm_bind_ifaces_to_nodes(discovery_fw, drec,
 				       ifaces, &rec_list);
 	if (rc)
-		log_error("Could not perform fw discovery.\n");
+		log_error("Could not perform fw discovery.");
 	else
 		rc = exec_disc_op_on_recs(drec, &rec_list, info_level,
 					   do_login, op);
@@ -2292,7 +2700,7 @@ static int exec_fw_op(discovery_rec_t *drec, struct list_head *ifaces,
 	rc = fw_get_targets(&targets);
 	if (rc) {
 		log_error("Could not get list of targets from firmware. "
-			  "(err %d)\n", rc);
+			  "(err %d)", rc);
 		return rc;
 	}
 
@@ -2301,7 +2709,7 @@ static int exec_fw_op(discovery_rec_t *drec, struct list_head *ifaces,
 			rec = idbm_create_rec_from_boot_context(context);
 			if (!rec) {
 				log_error("Could not convert firmware info to "
-					  "node record.\n");
+					  "node record.");
 				rc = ISCSI_ERR_NOMEM;
 				break;
 			}
@@ -2694,7 +3102,7 @@ static char *iscsi_ping_stat_strs[] = {
 static char *iscsi_ping_stat_to_str(uint32_t status)
 {
 	if (status < 0 || status > ISCSI_PING_NO_ARP_RECEIVED) {
-		log_error("Invalid ping status %u\n", status);
+		log_error("Invalid ping status %u", status);
 		return NULL;
 	}
 
@@ -2818,7 +3226,7 @@ main(int argc, char **argv)
 	struct iface_rec *iface = NULL, *tmp;
 	struct node_rec *rec = NULL;
 	uint64_t host_no =  (uint64_t)MAX_HOST_NO + 1;
-	uint64_t flashnode_idx = (uint64_t)MAX_FLASHNODE_IDX + 1;
+	uint64_t index = ULLONG_MAX;
 	struct user_param *param;
 	struct list_head params;
 
@@ -2962,9 +3370,9 @@ main(int argc, char **argv)
 				ISCSI_VERSION_STR);
 			return 0;
 		case 'x':
-			flashnode_idx = strtoull(optarg, NULL, 10);
+			index = strtoull(optarg, NULL, 10);
 			if (errno) {
-				log_error("Invalid flashnode index %s. %s.",
+				log_error("Invalid index %s. %s.",
 					  optarg, strerror(errno));
 				rc = ISCSI_ERR_INVAL;
 				goto free_ifaces;
@@ -3040,8 +3448,12 @@ main(int argc, char **argv)
 					rc = ISCSI_ERR_INVAL;
 					break;
 				}
+
+				if (index == ULLONG_MAX)
+					index = (uint64_t)MAX_CHAP_ENTRIES + 1;
+
 				rc = exec_host_chap_op(op, info_level, host_no,
-						       value);
+						       index, &params);
 				break;
 			case MODE_FLASHNODE:
 				if (host_no > MAX_HOST_NO) {
@@ -3050,10 +3462,24 @@ main(int argc, char **argv)
 					break;
 				}
 
+				if (index == ULLONG_MAX)
+					index = (uint64_t)MAX_FLASHNODE_IDX + 1;
+
 				rc = exec_flashnode_op(op, info_level, host_no,
-						       flashnode_idx,
-						       portal_type, &params);
+						       index, portal_type,
+						       &params);
 				break;
+			case MODE_HOST_STATS:
+				if (host_no > MAX_HOST_NO) {
+					log_error("STATS mode requires host no");
+					rc = ISCSI_ERR_INVAL;
+					break;
+				}
+
+				rc = exec_host_stats_op(op, info_level,
+							host_no);
+				break;
+
 			default:
 				log_error("Invalid Sub Mode");
 				break;

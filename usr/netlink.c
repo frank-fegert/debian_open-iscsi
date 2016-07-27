@@ -339,6 +339,10 @@ __kipc_call(struct iovec *iovp, int count)
 		} else if (ev->type == ISCSI_UEVENT_GET_CHAP) {
 			/* kget_chap() will read */
 			return 0;
+		} else if (ev->type == ISCSI_UEVENT_GET_HOST_STATS) {
+			/* kget_host_stats() will read */
+			return 0;
+
 		} else {
 			if ((rc = nlpayload_read(ctrl_fd, (void*)ev,
 						 sizeof(*ev), 0)) < 0) {
@@ -372,7 +376,7 @@ ksendtargets(uint64_t transport_handle, uint32_t host_no, struct sockaddr *addr)
 	else if (addr->sa_family == PF_INET6)
 		addrlen = sizeof(struct sockaddr_in6);
 	else {
-		log_error("%s unknown addr family %d\n",
+		log_error("%s unknown addr family %d",
 			  __FUNCTION__, addr->sa_family);
 		return -EINVAL;
 	}
@@ -382,7 +386,7 @@ ksendtargets(uint64_t transport_handle, uint32_t host_no, struct sockaddr *addr)
 	iov[1].iov_len = sizeof(*ev) + addrlen;
 	rc = __kipc_call(iov, 2);
 	if (rc < 0) {
-		log_error("sendtargets failed rc%d\n", rc);
+		log_error("sendtargets failed rc%d", rc);
 		return rc;
 	}
 	return 0;
@@ -674,7 +678,7 @@ kset_host_param(uint64_t transport_handle, uint32_t host_no,
 		sprintf(param_str, "%s", (char *)value);
 		break;
 	default:
-		log_error("invalid type %d\n", type);
+		log_error("invalid type %d", type);
 		return -EINVAL;
 	}
 	ev->u.set_host_param.len = len = strlen(param_str) + 1;
@@ -712,13 +716,16 @@ kset_param(uint64_t transport_handle, uint32_t sid, uint32_t cid,
 	case ISCSI_INT:
 		sprintf(param_str, "%d", *((int *)value));
 		break;
+	case ISCSI_UINT:
+		sprintf(param_str, "%u", *((unsigned int *)value));
+		break;
 	case ISCSI_STRING:
 		if (!strlen(value))
 			return 0;
 		sprintf(param_str, "%s", (char *)value);
 		break;
 	default:
-		log_error("invalid type %d\n", type);
+		log_error("invalid type %d", type);
 		return -EINVAL;
 	}
 	ev->u.set_param.len = len = strlen(param_str) + 1;
@@ -866,7 +873,7 @@ ktransport_ep_connect(iscsi_conn_t *conn, int non_blocking)
 	else if (dst_addr->sa_family == PF_INET6)
 		addrlen = sizeof(struct sockaddr_in6);
 	else {
-		log_error("%s unknown addr family %d\n",
+		log_error("%s unknown addr family %d",
 			 __FUNCTION__, dst_addr->sa_family);
 		return -EINVAL;
 	}
@@ -935,7 +942,7 @@ ktransport_ep_disconnect(iscsi_conn_t *conn)
 	iov[1].iov_len = sizeof(ev);
 	rc = __kipc_call(iov, 2);
 	if (rc < 0) {
-		log_error("connnection %d:%d transport disconnect failed for "
+		log_error("connection %d:%d transport disconnect failed for "
 			  "ep %" PRIu64 " with error %d.", conn->session->id,
 			  conn->id, conn->transport_ep_handle, rc);
 	} else
@@ -1031,6 +1038,10 @@ static int krecv_conn_state(struct iscsi_conn *conn, uint32_t *state)
 		/* fatal handling error or conn error */
 		goto exit;
 
+        /* unexpected event without a receive context */
+        if (!conn->recv_context)
+                return -EAGAIN;
+
 	*state = *(enum iscsi_conn_state *)conn->recv_context->data;
 
 	ipc_ev_clbk->put_ev_context(conn->recv_context);
@@ -1068,7 +1079,7 @@ ksend_ping(uint64_t transport_handle, uint32_t host_no, struct sockaddr *addr,
 	else if (addr->sa_family == PF_INET6)
 		addrlen = sizeof(struct sockaddr_in6);
 	else {
-		log_error("%s unknown addr family %d\n",
+		log_error("%s unknown addr family %d",
 			  __FUNCTION__, addr->sa_family);
 		return -EINVAL;
 	}
@@ -1226,6 +1237,29 @@ static int kget_chap(uint64_t transport_handle, uint32_t host_no,
 	*valid_chap_entries = ev.u.get_chap.num_entries;
 
 	return rc;
+}
+
+static int kset_chap(uint64_t transport_handle, uint32_t host_no,
+			struct iovec *iovs, uint32_t param_count)
+{
+	int rc;
+	struct iscsi_uevent ev;
+	struct iovec *iov = iovs + 1;
+
+	log_debug(8, "in %s", __func__);
+
+	ev.type = ISCSI_UEVENT_SET_CHAP;
+	ev.transport_handle = transport_handle;
+	ev.u.set_path.host_no = host_no;
+
+	iov->iov_base = &ev;
+	iov->iov_len = sizeof(ev);
+
+	rc = __kipc_call(iovs, param_count);
+	if (rc < 0)
+		return rc;
+
+	return 0;
 }
 
 static int kdelete_chap(uint64_t transport_handle, uint32_t host_no,
@@ -1415,6 +1449,48 @@ klogout_flashnode_sid(uint64_t transport_handle, uint32_t host_no,
 	return 0;
 }
 
+static int kget_host_stats(uint64_t transport_handle, uint32_t host_no,
+		     char *host_stats)
+{
+	int rc = 0;
+	int ev_size;
+	struct iscsi_uevent ev;
+	struct iovec iov[2];
+	char nlm_ev[NLMSG_SPACE(sizeof(struct iscsi_uevent))];
+	struct nlmsghdr *nlh;
+
+	memset(&ev, 0, sizeof(struct iscsi_uevent));
+
+	ev.type = ISCSI_UEVENT_GET_HOST_STATS;
+	ev.transport_handle = transport_handle;
+	ev.u.get_host_stats.host_no = host_no;
+
+	iov[1].iov_base = &ev;
+	iov[1].iov_len = sizeof(ev);
+	rc = __kipc_call(iov, 2);
+	if (rc < 0)
+		return rc;
+
+	if ((rc = nl_read(ctrl_fd, nlm_ev,
+			  NLMSG_SPACE(sizeof(struct iscsi_uevent)),
+			  MSG_PEEK)) < 0) {
+		log_error("can not read nlm_ev, error %d", rc);
+		return rc;
+	}
+
+	nlh = (struct nlmsghdr *)nlm_ev;
+	ev_size = nlh->nlmsg_len - NLMSG_ALIGN(sizeof(struct nlmsghdr));
+
+	if ((rc = nlpayload_read(ctrl_fd, (void *)host_stats,
+				 ev_size, 0)) < 0) {
+		log_error("can not read from NL socket, error %d", rc);
+		return rc;
+	}
+
+	return rc;
+}
+
+
 static void drop_data(struct nlmsghdr *nlh)
 {
 	int ev_size;
@@ -1444,7 +1520,7 @@ static int ctldev_handle(void)
 	nlh = (struct nlmsghdr *)nlm_ev;
 	ev = (struct iscsi_uevent *)NLMSG_DATA(nlm_ev);
 
-	log_debug(7, "%s got event type %u\n", __FUNCTION__, ev->type);
+	log_debug(7, "%s got event type %u", __FUNCTION__, ev->type);
 	/* drivers like qla4xxx can be inserted after iscsid is started */
 	switch (ev->type) {
 	case ISCSI_KEVENT_CREATE_SESSION:
@@ -1487,15 +1563,15 @@ static int ctldev_handle(void)
 	case ISCSI_KEVENT_HOST_EVENT:
 		switch (ev->r.host_event.code) {
 		case ISCSI_EVENT_LINKUP:
-			log_warning("Host%u: Link Up.\n",
+			log_warning("Host%u: Link Up.",
 				    ev->r.host_event.host_no);
 			break;
 		case ISCSI_EVENT_LINKDOWN:
-			log_warning("Host%u: Link Down.\n",
+			log_warning("Host%u: Link Down.",
 				    ev->r.host_event.host_no);
 			break;
 		default:
-			log_debug(7, "Host%u: Unknwon host event: %u.\n",
+			log_debug(7, "Host%u: Unknwon host event: %u.",
 				  ev->r.host_event.host_no,
 				  ev->r.host_event.code);
 		}
@@ -1535,7 +1611,7 @@ static int ctldev_handle(void)
 		 * nl interface.
 		 */
 		log_debug(1, "Could not verify connection %d:%d. Dropping "
-			   "event.\n", sid, cid);
+			   "event.", sid, cid);
 		drop_data(nlh);
 		return -ENXIO;
 	}
@@ -1545,8 +1621,8 @@ static int ctldev_handle(void)
 
 	ev_context = ipc_ev_clbk->get_ev_context(conn, ev_size);
 	if (!ev_context) {
-		/* retry later */
 		log_error("Can not allocate memory for receive context.");
+		drop_data(nlh);
 		return -ENOMEM;
 	}
 
@@ -1705,6 +1781,7 @@ struct iscsi_ipc nl_ipc = {
 	.recv_conn_state        = krecv_conn_state,
 	.exec_ping		= kexec_ping,
 	.get_chap		= kget_chap,
+	.set_chap		= kset_chap,
 	.delete_chap		= kdelete_chap,
 	.set_flash_node_params	= kset_flashnode_params,
 	.new_flash_node		= knew_flashnode,
@@ -1712,6 +1789,7 @@ struct iscsi_ipc nl_ipc = {
 	.login_flash_node	= klogin_flashnode,
 	.logout_flash_node	= klogout_flashnode,
 	.logout_flash_node_sid	= klogout_flashnode_sid,
+	.get_host_stats		= kget_host_stats,
 };
 struct iscsi_ipc *ipc = &nl_ipc;
 

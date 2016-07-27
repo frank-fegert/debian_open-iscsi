@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009-2011, Broadcom Corporation
+ * Copyright (c) 2014, QLogic Corporation
  *
  * Written by:  Benjamin Li  (benli@broadcom.com)
  *
@@ -80,39 +81,39 @@ static const char bnx2x_uio_sysfs_name[] = "bnx2x_cnic";
 /*******************************************************************************
  * String constants used to display human readable adapter name
  ******************************************************************************/
-static const char brcm_57710[] = "Broadcom NetXtreme II BCM57710 10-Gigabit";
-static const char brcm_57711[] = "Broadcom NetXtreme II BCM57711 10-Gigabit";
-static const char brcm_57711e[] = "Broadcom NetXtreme II BCM57711E 10-Gigabit";
-static const char brcm_57712[] = "Broadcom NetXtreme II BCM57712 10-Gigabit";
-static const char brcm_57712_MF[] = "Broadcom NetXtreme II BCM57712 MF "
+static const char brcm_57710[] = "QLogic NetXtreme II BCM57710 10-Gigabit";
+static const char brcm_57711[] = "QLogic NetXtreme II BCM57711 10-Gigabit";
+static const char brcm_57711e[] = "QLogic NetXtreme II BCM57711E 10-Gigabit";
+static const char brcm_57712[] = "QLogic NetXtreme II BCM57712 10-Gigabit";
+static const char brcm_57712_MF[] = "QLogic NetXtreme II BCM57712 MF "
 				    "10-Gigabit";
-static const char brcm_57712_VF[] = "Broadcom NetXtreme II BCM57712 VF "
+static const char brcm_57712_VF[] = "QLogic NetXtreme II BCM57712 VF "
 				    "10-Gigabit";
-static const char brcm_57713[] = "Broadcom NetXtreme II BCM57713 10-Gigabit";
-static const char brcm_57713e[] = "Broadcom NetXtreme II BCM57713E 10-Gigabit";
-static const char brcm_57800[] = "Broadcom NetXtreme II BCM57800 10-Gigabit";
-static const char brcm_57800_MF[] = "Broadcom NetXtreme II BCM57800 MF "
+static const char brcm_57713[] = "QLogic NetXtreme II BCM57713 10-Gigabit";
+static const char brcm_57713e[] = "QLogic NetXtreme II BCM57713E 10-Gigabit";
+static const char brcm_57800[] = "QLogic NetXtreme II BCM57800 10-Gigabit";
+static const char brcm_57800_MF[] = "QLogic NetXtreme II BCM57800 MF "
 				    "10-Gigabit";
-static const char brcm_57800_VF[] = "Broadcom NetXtreme II BCM57800 VF "
+static const char brcm_57800_VF[] = "QLogic NetXtreme II BCM57800 VF "
 				    "10-Gigabit";
-static const char brcm_57810[] = "Broadcom NetXtreme II BCM57810 10-Gigabit";
-static const char brcm_57810_MF[] = "Broadcom NetXtreme II BCM57810 MF "
+static const char brcm_57810[] = "QLogic NetXtreme II BCM57810 10-Gigabit";
+static const char brcm_57810_MF[] = "QLogic NetXtreme II BCM57810 MF "
 				    "10-Gigabit";
-static const char brcm_57810_VF[] = "Broadcom NetXtreme II BCM57810 VF "
+static const char brcm_57810_VF[] = "QLogic NetXtreme II BCM57810 VF "
 				    "10-Gigabit";
-static const char brcm_57811[] = "Broadcom NetXtreme II BCM57811 10-Gigabit";
-static const char brcm_57811_MF[] = "Broadcom NetXtreme II BCM57811 MF "
+static const char brcm_57811[] = "QLogic NetXtreme II BCM57811 10-Gigabit";
+static const char brcm_57811_MF[] = "QLogic NetXtreme II BCM57811 MF "
 				    "10-Gigabit";
-static const char brcm_57811_VF[] = "Broadcom NetXtreme II BCM57811 VF "
+static const char brcm_57811_VF[] = "QLogic NetXtreme II BCM57811 VF "
 				    "10-Gigabit";
-static const char brcm_57840[] = "Broadcom NetXtreme II BCM57840 10-Gigabit";
-static const char brcm_57840_MF[] = "Broadcom NetXtreme II BCM57840 MF "
+static const char brcm_57840[] = "QLogic NetXtreme II BCM57840 10-Gigabit";
+static const char brcm_57840_MF[] = "QLogic NetXtreme II BCM57840 MF "
 				    "10-Gigabit";
-static const char brcm_57840_VF[] = "Broadcom NetXtreme II BCM57840 VF "
+static const char brcm_57840_VF[] = "QLogic NetXtreme II BCM57840 VF "
 				    "10-Gigabit";
-static const char brcm_57840_4_10[] = "Broadcom NetXtreme II BCM57840 4x"
+static const char brcm_57840_4_10[] = "QLogic NetXtreme II BCM57840 4x"
 				      "10-Gigabit";
-static const char brcm_57840_2_20[] = "Broadcom NetXtreme II BCM57840 2x"
+static const char brcm_57840_2_20[] = "QLogic NetXtreme II BCM57840 2x"
 				      "20-Gigabit";
 
 /*******************************************************************************
@@ -442,7 +443,7 @@ static void bnx2x_doorbell(bnx2x_t *bp, __u32 off, __u32 val)
 
 static void bnx2x_flush_doorbell(bnx2x_t *bp, __u32 off)
 {
-	volatile __u32 tmp;
+	volatile __u32 tmp __attribute__((__unused__));
 
 	barrier();
 	tmp = *((volatile __u32 *)(bp->reg2 + off));
@@ -671,6 +672,9 @@ static int bnx2x_open(nic_t *nic)
 	uint32_t bus;
 	uint32_t slot;
 	uint32_t func;
+	uint32_t mode;
+	__u32 proto_offset;
+	__u32 ovtag_offset;
 
 	/*  Sanity Check: validate the parameters */
 	if (nic == NULL) {
@@ -900,8 +904,14 @@ static int bnx2x_open(nic_t *nic)
 		struct client_init_general_data *data = bp->bufs;
 
 		bp->client_id = data->client_id;
-		if (data->reserved0)
-			bp->cid = data->reserved0;
+		if (data->uid.cid)
+			bp->cid = data->uid.cid;
+		if (bp->version.minor >= 78 && bp->version.sub_minor >= 55 &&
+		    data->uid.cid_override_key == UIO_USE_TX_DOORBELL) {
+			bp->tx_doorbell = data->uid.tx_db_off;
+			LOG_INFO(PFX "%s: tx doorbell override offset = 0x%x",
+				 nic->log_name, bp->tx_doorbell);
+		}
 	}
 
 	LOG_INFO(PFX "%s: func 0x%x, pfid 0x%x, client_id 0x%x, cid 0x%x",
@@ -928,7 +938,8 @@ static int bnx2x_open(nic_t *nic)
 		     USTORM_RX_PRODS_E2_OFFSET(cl_qzone_id) :
 		     USTORM_RX_PRODS_E1X_OFFSET(bp->port, bp->client_id));
 
-		bp->tx_doorbell = bp->cid * 0x80 + 0x40;
+		if (!bp->tx_doorbell)
+			bp->tx_doorbell = bp->cid * 0x80 + 0x40;
 
 		bp->get_rx_cons = bnx2x_get_rx_60;
 		bp->get_tx_cons = bnx2x_get_tx_60;
@@ -994,9 +1005,11 @@ static int bnx2x_open(nic_t *nic)
 			mf_cfg_addr = bp->shmem_base + 0x7e4;
 
 		/* shared_feat_cfg.config */
-		val = bnx2x_rd32(bp, bp->shmem_base + 0x354);
-		/* SI mode */
-		if ((val & 0x700) == 0x300) {
+		mode = bnx2x_rd32(bp, bp->shmem_base + 0x354);
+		mode &= 0x700;
+		LOG_DEBUG(PFX "%s: mode = 0x%x", nic->log_name, mode);
+		switch (mode) {
+		case 0x300: /* SI mode */
 			mac_offset = 0xe4 + (bp->func * 0x28) + 4;
 			val = bnx2x_rd32(bp, mf_cfg_addr + mac_offset);
 			mac[0] = (__u8) (val >> 8);
@@ -1019,9 +1032,13 @@ static int bnx2x_open(nic_t *nic)
 				rc = -ENOTSUP;
 				goto open_error;
 			}
-		} else if ((val & 0x700) == 0) {
-			__u32 proto_offset = 0x24 + (bp->func * 0x18);
-			__u32 ovtag_offset = proto_offset + 0xc;
+			break;
+
+		case 0x0: /* MF SD mode */
+		case 0x500:
+		case 0x600:
+			proto_offset = 0x24 + (bp->func * 0x18);
+			ovtag_offset = proto_offset + 0xc;
 
 			rc = -ENOTSUP;
 			val = bnx2x_rd32(bp, mf_cfg_addr + ovtag_offset);
@@ -1049,7 +1066,7 @@ static int bnx2x_open(nic_t *nic)
 			mac[4] = (__u8) (val >> 8);
 			mac[5] = (__u8) val;
 			memcpy(nic->mac_addr, mac, 6);
-
+			break;
 		}
 	}
 SF:
