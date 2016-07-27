@@ -1,3 +1,19 @@
+open-iscsi (2.0.873+git1.1dfb88a4-1~bpo8+2) UNRELEASED; urgency=medium
+
+  * Removed patches already merged by upstream
+  * Reordered remaining patches
+  * Added new patches to backport upstream changes up to commit 0fa43f29,
+    but excluding the removal of the local open-isns library (commits:
+    76832662, c6d1117b).
+
+ -- Frank Fegert <fra.nospam.nk@gmx.de>  Wed, 27 Jul 2016 17:20:36 +0200
+
+open-iscsi (2.0.873+git1.1dfb88a4-1~bpo8+1) UNRELEASED; urgency=medium
+
+  * Imported Upstream version 2.0.873+git1.1dfb88a4
+
+ -- Frank Fegert <fra.nospam.nk@gmx.de>  Thu, 21 Jul 2016 16:43:31 +0200
+
 open-iscsi (2.0.873+git0.3b4b4500-15~bpo8+1) jessie-backports; urgency=medium
 
   * Rebuild for jessie-backports.
