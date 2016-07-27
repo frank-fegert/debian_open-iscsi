@@ -1,0 +1,36 @@
+--- a/usr/initiator_common.c
++++ b/usr/initiator_common.c
+@@ -249,7 +249,7 @@
+ 	return 0;
+ }
+ 
+-int host_set_param(struct iscsi_transport *t,
++static int host_set_param(struct iscsi_transport *t,
+ 		   uint32_t host_no, int param, char *value,
+ 		   int type)
+ {
+@@ -261,7 +261,7 @@
+ 		log_error("can't set operational parameter %d for "
+ 			  "host %d, retcode %d (%d)", param, host_no,
+ 			  rc, errno);
+-		return rc;
++		return ISCSI_ERR_INVAL;
+ 	}
+ 	return 0;
+ }
+@@ -677,13 +677,13 @@
+ 			log_warning("Please set the iface.ipaddress for iface "
+ 				    "%s, then retry the login command.",
+ 				    iface->name);
+-			return EINVAL;
++			return ISCSI_ERR_INVAL;
+ 		} else if (t->template->set_host_ip == SET_HOST_IP_OPT) {
+ 			log_info("Optional iface.ipaddress for iface %s "
+ 				 "not set.", iface->name);
+ 			return 0;
+ 		} else {
+-			return EINVAL;
++			return ISCSI_ERR_INVAL;
+ 		}
+ 	}
+ 

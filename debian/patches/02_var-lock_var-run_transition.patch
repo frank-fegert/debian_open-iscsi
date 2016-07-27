@@ -1,11 +1,8 @@
 Description: Move from /var/lock and /var/run to /run/lock and /run
 Author: Stéphane Graber <stgraber@ubuntu.com>
-
-Index: open-iscsi-2.0.873+git0.3b4b4500/doc/iscsid.8
-===================================================================
---- open-iscsi-2.0.873+git0.3b4b4500.orig/doc/iscsid.8
-+++ open-iscsi-2.0.873+git0.3b4b4500/doc/iscsid.8
-@@ -40,7 +40,7 @@ do not write a process ID file.
+--- a/doc/iscsid.8
++++ b/doc/iscsid.8
+@@ -40,7 +40,7 @@
  .TP
  .BI [-p|--pid=]\fIpid\-file\fP
  write process ID to \fIpid\-file\fR rather than the default
@@ -14,10 +11,8 @@ Index: open-iscsi-2.0.873+git0.3b4b4500/doc/iscsid.8
  .TP
  .BI [-h|--help]
  display this help and exit
-Index: open-iscsi-2.0.873+git0.3b4b4500/usr/initiator.h
-===================================================================
---- open-iscsi-2.0.873+git0.3b4b4500.orig/usr/initiator.h
-+++ open-iscsi-2.0.873+git0.3b4b4500/usr/initiator.h
+--- a/usr/initiator.h
++++ b/usr/initiator.h
 @@ -38,9 +38,9 @@
  #define CONFIG_FILE		ISCSI_CONFIG_ROOT"iscsid.conf"
  #define INITIATOR_NAME_FILE	ISCSI_CONFIG_ROOT"initiatorname.iscsi"
@@ -30,10 +25,8 @@ Index: open-iscsi-2.0.873+git0.3b4b4500/usr/initiator.h
  #endif
  #define LOCK_FILE		LOCK_DIR"/lock"
  #define LOCK_WRITE_FILE		LOCK_DIR"/lock.write"
-Index: open-iscsi-2.0.873+git0.3b4b4500/utils/open-isns/paths.h
-===================================================================
---- open-iscsi-2.0.873+git0.3b4b4500.orig/utils/open-isns/paths.h
-+++ open-iscsi-2.0.873+git0.3b4b4500/utils/open-isns/paths.h
+--- a/utils/open-isns/paths.h
++++ b/utils/open-isns/paths.h
 @@ -13,7 +13,7 @@
  #define OPENISNS_VERSION_STRING		"0.90"
  
@@ -43,11 +36,9 @@ Index: open-iscsi-2.0.873+git0.3b4b4500/utils/open-isns/paths.h
  #define ISNS_DEFAULT_ISNSD_CONFIG	ISNS_ETCDIR "/isnsd.conf"
  #define ISNS_DEFAULT_ISNSDD_CONFIG	ISNS_ETCDIR "/isnsdd.conf"
  #define ISNS_DEFAULT_ISNSADM_CONFIG	ISNS_ETCDIR "/isnsadm.conf"
-Index: open-iscsi-2.0.873+git0.3b4b4500/utils/open-isns/doc/isns_config.5
-===================================================================
---- open-iscsi-2.0.873+git0.3b4b4500.orig/utils/open-isns/doc/isns_config.5
-+++ open-iscsi-2.0.873+git0.3b4b4500/utils/open-isns/doc/isns_config.5
-@@ -94,7 +94,7 @@ statically.
+--- a/utils/open-isns/doc/isns_config.5
++++ b/utils/open-isns/doc/isns_config.5
+@@ -94,7 +94,7 @@
  .TP
  .BR PIDFile " (server):
  This specifies the name of the server's PID file, which is
@@ -56,10 +47,8 @@ Index: open-iscsi-2.0.873+git0.3b4b4500/utils/open-isns/doc/isns_config.5
  by default.
  .\" ------------------------------------------------------------------
  .SS Database Related Options
-Index: open-iscsi-2.0.873+git0.3b4b4500/utils/open-isns/etc/openisns.init
-===================================================================
---- open-iscsi-2.0.873+git0.3b4b4500.orig/utils/open-isns/etc/openisns.init
-+++ open-iscsi-2.0.873+git0.3b4b4500/utils/open-isns/etc/openisns.init
+--- a/utils/open-isns/etc/openisns.init
++++ b/utils/open-isns/etc/openisns.init
 @@ -8,7 +8,7 @@
  # description: Starts and stops the iSCSI isns server
  #
@@ -69,7 +58,7 @@ Index: open-iscsi-2.0.873+git0.3b4b4500/utils/open-isns/etc/openisns.init
  # config:  /etc/isns/isnsd.conf
  
  # Source function library.
-@@ -27,14 +27,14 @@ start()
+@@ -27,14 +27,14 @@
           success
           echo
           [ $RETVAL -eq 0 ] || return
@@ -86,7 +75,7 @@ Index: open-iscsi-2.0.873+git0.3b4b4500/utils/open-isns/etc/openisns.init
           success
           echo
  
-@@ -61,7 +61,7 @@ status)
+@@ -61,7 +61,7 @@
  	RETVAL=$?
  	;;
  condrestart)
@@ -95,10 +84,8 @@ Index: open-iscsi-2.0.873+git0.3b4b4500/utils/open-isns/etc/openisns.init
  	;;
  *)
  	echo $"Usage: $0 {start|stop|restart|status|condrestart}"
-Index: open-iscsi-2.0.873+git0.3b4b4500/iscsiuio/src/unix/main.c
-===================================================================
---- open-iscsi-2.0.873+git0.3b4b4500.orig/iscsiuio/src/unix/main.c
-+++ open-iscsi-2.0.873+git0.3b4b4500/iscsiuio/src/unix/main.c
+--- a/iscsiuio/src/unix/main.c
++++ b/iscsiuio/src/unix/main.c
 @@ -76,7 +76,7 @@
   ******************************************************************************/
  #define PFX "main "
@@ -108,3 +95,14 @@ Index: open-iscsi-2.0.873+git0.3b4b4500/iscsiuio/src/unix/main.c
  
  /*******************************************************************************
   *  Global Variables
+--- a/iscsiuio/docs/iscsiuio.8
++++ b/iscsiuio/docs/iscsiuio.8
+@@ -71,7 +71,7 @@
+ .PP
+ .TP
+ .BI -p <pidfile>
+-Use pidfile (default  /var/run/iscsiuio.pid )
++Use pidfile (default  /run/iscsiuio.pid )
+ .PP
+ .TP
+ .BI -h

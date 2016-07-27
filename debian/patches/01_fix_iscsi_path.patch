@@ -1,8 +1,8 @@
 Fix path for iscsid as we ship it in /usr/sbin
-Index: open-iscsi/etc/iscsid.conf
+Index: open-iscsi-2.0.873+git1.1dfb88a4/etc/iscsid.conf
 ===================================================================
---- open-iscsi.orig/etc/iscsid.conf	2013-11-05 20:56:42.941418667 +0530
-+++ open-iscsi/etc/iscsid.conf	2013-11-05 20:56:42.941418667 +0530
+--- open-iscsi-2.0.873+git1.1dfb88a4.orig/etc/iscsid.conf
++++ open-iscsi-2.0.873+git1.1dfb88a4/etc/iscsid.conf
 @@ -20,7 +20,7 @@
  # iscsid.startup = /etc/rc.d/init.d/iscsid force-start
  # 
@@ -10,5 +10,5 @@ Index: open-iscsi/etc/iscsid.conf
 -iscsid.startup = /sbin/iscsid
 +iscsid.startup = /usr/sbin/iscsid
  
- 
- #############################
+ # Check for active mounts on devices reachable through a session
+ # and refuse to logout if there are any.  Defaults to "No".

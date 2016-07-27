@@ -1,0 +1,31 @@
+--- a/usr/iscsiadm.c
++++ b/usr/iscsiadm.c
+@@ -3199,7 +3199,7 @@
+ 			}
+ 
+ 			rc = iscsi_set_net_config(t, NULL, iface);
+-			if (rc)
++			if (rc && (rc != ISCSI_ERR_AGAIN))
+ 				goto ping_err;
+ 
+ 			rc = t->template->exec_ping(t, iface, size, &addr,
+--- a/usr/iscsid_req.c
++++ b/usr/iscsid_req.c
+@@ -247,7 +247,7 @@
+ 		return ISCSI_ERR;
+ 	}
+ 
+-#define MAX_UIP_BROADCAST_READ_TRIES 3
++#define MAX_UIP_BROADCAST_READ_TRIES 5
+ 	for (count = 0; count < MAX_UIP_BROADCAST_READ_TRIES; count++) {
+ 		/*  Wait for the response */
+ 		err = read(fd, &rsp, sizeof(rsp));
+@@ -258,7 +258,7 @@
+ 			err = 0;
+ 			break;
+ 		} else if ((err == -1) && (errno == EAGAIN)) {
+-			usleep(250000);
++			usleep(1000000);
+ 			continue;
+ 		} else {
+ 			log_error("Could not read response (%d/%d), daemon "
