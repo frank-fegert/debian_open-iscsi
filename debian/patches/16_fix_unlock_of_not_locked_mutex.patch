@@ -1,7 +1,7 @@
 Prevent iscsiuio from segfaulting due to un-lock of a not locked mutex.
 --- a/iscsiuio/src/unix/nic_nl.c
 +++ b/iscsiuio/src/unix/nic_nl.c
-@@ -483,6 +483,7 @@
+@@ -483,9 +483,11 @@
  	while (!event_loop_stop) {
  		char *data = NULL;
  
@@ -9,3 +9,7 @@ Prevent iscsiuio from segfaulting due to un-lock of a not locked mutex.
  		rc = pthread_cond_wait(&nic->nl_process_cond,
  				       &nic->nl_process_mutex);
  		if (rc != 0) {
++			pthread_mutex_unlock(&nic->nl_process_mutex);
+ 			LOG_ERR("Fatal error in NL processing thread "
+ 				"during wait[%s]", strerror(rc));
+ 			break;

@@ -1,3 +1,9 @@
+open-iscsi (2.0.873+git1.1dfb88a4-1~bpo8+2.1) UNRELEASED; urgency=medium
+
+  * Prevent iscsiuio from segfaulting due to un-lock of a not locked mutex.
+
+ -- Frank Fegert <fra.nospam.nk@gmx.de>  Mon, 01 Aug 2016 10:07:03 +0200
+
 open-iscsi (2.0.873+git1.1dfb88a4-1~bpo8+2) UNRELEASED; urgency=medium
 
   * Removed patches already merged by upstream
